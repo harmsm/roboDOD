@@ -32,7 +32,7 @@ clients = []
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        self.render('index.html')
+        self.render('web/index.html')
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
 

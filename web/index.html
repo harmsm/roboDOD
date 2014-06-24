@@ -1,132 +1,72 @@
-<!--
-########################################################################
-# Program Name: Browser_Client_Coder.html
-# ================================
-# This code is for controlling a robot by a web browser using web sockets
-# http://www.dexterindustries.com/
-# History
-# ------------------------------------------------
-# Author Comments
-# Joshwa Initial Authoring
-#
-# These files have been made available online through a Creative Commons Attribution-ShareAlike 3.0 license.
-# (http://creativecommons.org/licenses/by-sa/3.0/)
-#
-########################################################################
--->
-<!-- This code implements the web socket connection between client(web page on a Computer) and a server(raspberry pi) -->
-<!-- It sends data from web page using buttons and Keyboard presses to control the BrickPi robot -->
-
 <!DOCTYPE html>
 <html>
+
   <head>
     <title>Dod Connection Client</title>
-    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
   </head>
+
   <body>
 
-    <div id="send">
-
-        <p> Enter the hostname/ip address to make the websocket connection </p>
-        <input type="text" id="data"/><br>
-        <input id="clickme" type="button" value="Connect" onclick="setup2()" />
-        </br>
-        <p><span style="font-weight:bold">Instructions for keyboard controls:</span></p>    
-        <p>Use the arrow keys to steer; shift key stops.</p>
-
-    </div>
-
+    <p><span style="font-weight:bold">DOD says:</span></p>
     <div id="output"></div>
 
     <script>
 
-        // Creates the websockets connection
-        function setup2() {
+      var host = "ws://raspberrypi:8080/ws";
+      var socket = new WebSocket(host);
 
-            var $txt = $("#data"); // assigns the data(hostname/ip address) entered in the text box
-            name = $txt.val(); // Variable name contains the string(hostname/ip address) entered in the text box
-            var host = "ws://"+name+":8080/ws"; // combines the three string and creates a new string
-            var socket = new WebSocket(host);
-            var $txt = $("#data");
-            var $btnSend = $("#sendtext");
-            $txt.focus();
+      if(socket) {
+        socket.onopen = function() {
 
-            // event handlers for UI
-            $btnSend.on('click',function() {
-                var text = $txt.val();
-                if(text == "") { return; }
-                $txt.val("");
-            }); 
-            $txt
-            .keypress(function(evt) {
-                if(evt.which == 13) {
-                    $btnSend.click();
-                }
-            });
+          document.onkeyup = function KeyCheck(event) {
 
-            // event handlers for websocket
-            if(socket) {
-                socket.onopen = function() {
-                    arrows(); // function for detecting keyboard presses
-                }
+            var KeyID = event.which; 
 
-                function arrows() {
-                    document.onkeyup = KeyCheck;
-                    function KeyCheck() {
-                        var KeyID = event.keyCode;
-                        switch(KeyID) {
-                            case 16:
-                                socket.send("stop");
-                                socket.send("coast");
-                                break;
-                            case 17:
-                                socket.send("stop");
-                                socket.send("coast");
-                                break;
-                            case 37:
-                                socket.send("left");
-                                break;
-                            case 38:
-                                socket.send("forward");
-                                break;
-                            case 39:
-                                socket.send("right");
-                                break;
-                            case 40:
-                                socket.send("reverse");
-                                break;
-                            case 68:
-                               socket.send("robot|forward_range|get");
-                                break;
-                        }
-                    }
-                }
-
-                socket.onmessage = function(msg) {
-                    showServerResponse(msg.data);
-                }
-                socket.onclose = function() {
-                    showServerResponse("The connection has been closed.");
-                }
-            } else {
-                console.log("invalid socket");
+            switch(KeyID) {
+              case 16:
+                socket.send("robot|drivetrain|stop");
+                socket.send("robot|drivetrain|coast");
+                break;
+              case 17:
+                socket.send("robot|drivetrain|stop");
+                socket.send("robot|drivetrain|coast");
+                break;
+              case 37:
+                socket.send("robot|drivetrain|left");
+                break;
+              case 38:
+                socket.send("robot|drivetrain|forward");
+                break;
+              case 39:
+                socket.send("robot|drivetrain|right");
+                break;
+              case 40:
+                socket.send("robot|drivetrain|reverse");
+                break;
+              case 68:
+                socket.send("robot|forward_range|get");
+                break;
+              }
             }
+          }
 
-            function showServerResponse(txt) {
-                var p = document.createElement('p');
-                p.innerHTML = txt;
-                document.getElementById('output').appendChild(p);
-            }   
-        }
+          socket.onmessage = function(msg) {
+              showServerResponse(msg.data);
+          }
+          socket.onclose = function() {
+              showServerResponse("The connection has been closed.");
+          }
+      } else {
+          console.log("invalid socket");
+      }
 
-     </script>
+      function showServerResponse(txt) {
+          var p = document.createElement('p');
+          p.innerHTML = txt;
+          document.getElementById('output').appendChild(p);
+      }   
+
+    </script>
   </body>
 </html>
 
-<script>
-    jQuery(function($) {
-        if (!("WebSocket" in window)) {
-            alert("Your browser does not support web sockets");
-        }
-    });
-</script>
