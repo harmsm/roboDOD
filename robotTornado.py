@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 __description__ = \
 """
 Tornado instance with multiple threads that allows python to monitor the
@@ -43,7 +43,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         tornado.websocket.WebSocketHandler.__init__(self,*args,**kwargs)
 
-        self.verbose = True
+        self.verbose = False
         self.logfile = "tornado-controller.log"
         self.local_log = open(self.logfile,'a')
 

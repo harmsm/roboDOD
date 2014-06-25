@@ -2,7 +2,7 @@
 <html>
 
   <head>
-    <title>Dod Connection Client</title>
+    <title>DOD Connection Client</title>
   </head>
 
   <body>
@@ -24,10 +24,6 @@
 
             switch(KeyID) {
               case 16:
-                socket.send("robot|drivetrain|stop");
-                socket.send("robot|drivetrain|coast");
-                break;
-              case 17:
                 socket.send("robot|drivetrain|stop");
                 socket.send("robot|drivetrain|coast");
                 break;
@@ -54,10 +50,10 @@
               showServerResponse(msg.data);
           }
           socket.onclose = function() {
-              showServerResponse("The connection has been closed.");
+              showServerResponse("Connection closed by server.");
           }
       } else {
-          console.log("invalid socket");
+          console.log("Invalid socket.");
       }
 
       function showServerResponse(txt) {
