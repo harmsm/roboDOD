@@ -18,6 +18,7 @@ __date__ = "2014-06-18"
 
 from random import random
 from lowLevel import *
+import time
 
 class RobotDeviceError(Exception):
     """
@@ -174,9 +175,49 @@ class TwoMotorDriveSteer(RobotDevice):
                              "reverse":self.drive_motor.reverse,
                              "stop":self.drive_motor.stop,
                              "coast":self.drive_motor.coast,
-                             "left":self.steer_motor.forward,
-                             "right":self.steer_motor.reverse,
-                             "center":self.steer_motor.coast}
+                             "left":self.steerLeft,
+                             "right":self.steerRight,
+                             "center":self.steerCenter}
+        
+        self.current_steer_motor_state = 0
+
+        self.LEFT_RETURN_CONSTANT =  0.03
+        self.RIGHT_RETURN_CONSTANT = 0.03
+
+    def steerLeft(self):
+        """
+        """
+        
+        self.current_steer_motor_state = -1
+        self.steer_motor.forward()
+
+    def steerRight(self):
+        """
+        """
+        
+        self.current_steer_motor_state = 1
+        self.steer_motor.reverse()
+
+    def steerCenter(self):
+        """
+        """
+
+        # Steering wheels in the left-hand position
+        if self.current_steer_motor_state == -1:
+
+           self.steer_motor.reverse()
+           time.sleep(self.LEFT_RETURN_CONSTANT)
+           self.steer_motor.coast()
+
+        # Steering wheels in the right-hand position
+        if self.current_steer_motor_state == 1:
+            
+            self.steer_motor.forward()
+            time.sleep(self.LEFT_RETURN_CONSTANT)
+            self.steer_motor.coast()
+
+        self.steer_motor.coast()
+        self.current_steer_motor_state = 0
 
     def shutDown(self):
         

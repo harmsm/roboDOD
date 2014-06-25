@@ -120,7 +120,8 @@ def main(argv=None):
     app = tornado.web.Application(
         handlers=[
             (r"/", IndexHandler),
-            (r"/ws", WebSocketHandler)
+            (r"/ws", WebSocketHandler),
+            (r"/static/(.*)",tornado.web.StaticFileHandler,{'path':"web/"}),
         ], queue=dm.input_queue
     )
     httpServer = tornado.httpserver.HTTPServer(app)

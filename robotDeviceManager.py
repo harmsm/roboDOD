@@ -4,7 +4,7 @@ __description__ = \
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
-import multiprocessing
+import multiprocessing, time
 from robotDevices import InfoDevice
 
 class RobotError(Exception):
@@ -91,8 +91,15 @@ class DeviceManager(multiprocessing.Process):
             raise RobotError(err) 
  
     def run(self):
+
+        num_iterations = 0
+        SAMPLING_CONSTANT = 1000
  
         while True:
+
+            if num_iterations % SAMPLING_CONSTANT == 0:
+                self.sendData("robot|forward_range|get")
+                num_iterations = 1
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device
@@ -107,5 +114,6 @@ class DeviceManager(multiprocessing.Process):
                 device_output = d.getData()
 
                 if device_output != None:
-                    print(device_output)
                     self.output_queue.put(device_output)
+
+            num_iterations += 1

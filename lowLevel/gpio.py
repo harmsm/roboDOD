@@ -73,6 +73,7 @@ class UltrasonicRange:
 
         # Find end of echo
         counter = 0 
+        stop = time.time()
         while GPIO.input(self.echo_pin)==1 and counter < self.timeout:
             stop = time.time()
             counter += 1

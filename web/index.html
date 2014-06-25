@@ -7,6 +7,15 @@
 
   <body>
 
+    <p/>
+    <video width="426" height="240" controls>
+      <!-- <source src="http://raspberrypi:8080/static/F9R_1000m_Fin_Flight_Onboard_Cam_and_Wide_Shot.mp4" type="video/mpeg4"> -->
+      <!-- <source src="http://raspberrypi:8080/static/stream.mp4" type="video/mp4"> -->
+      <source src="http://raspberrypi:8080/static/F9R_1000m_Fin_Flight_Onboard_Cam_and_Wide_Shot.ogg" type="video/ogg">
+      Your browser does not support the video tag.
+    </video> 
+    <p>Forward proximity (m):</p><p id=proximity></p>
+
     <p><span style="font-weight:bold">DOD says:</span></p>
     <div id="output"></div>
 
@@ -39,6 +48,9 @@
               case 40:
                 socket.send("robot|drivetrain|reverse");
                 break;
+              case 67:
+                socket.send("robot|drivetrain|center");
+                break;
               case 68:
                 socket.send("robot|forward_range|get");
                 break;
@@ -57,9 +69,14 @@
       }
 
       function showServerResponse(txt) {
-          var p = document.createElement('p');
-          p.innerHTML = txt;
-          document.getElementById('output').appendChild(p);
+          if (txt.split("|")[1] == "forward_range"){
+            var dist = parseFloat(txt.split("|")[2]);
+            document.getElementById("proximity").innerHTML = dist.toFixed(3);
+          } else {
+            var p = document.createElement('p');
+            p.innerHTML = txt;
+            document.getElementById('output').appendChild(p);
+          }
       }   
 
     </script>

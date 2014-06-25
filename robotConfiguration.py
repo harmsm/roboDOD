@@ -9,7 +9,7 @@ hardware configuration.
 from robotDevices import *
 
 device_list = [
-                TwoMotorDriveSteer(drive_pin1=13,drive_pin2=15,steer_pin1=7,steer_pin2=11,name="drivetrain"),
+                TwoMotorDriveSteer(drive_pin1=15,drive_pin2=13,steer_pin1=11,steer_pin2=7,name="drivetrain"),
                 RangeFinder(trigger_pin=18,echo_pin=16,name="forward_range",timeout=100000)        
 #               GPIOMotor(pin1=13,pin2=15,name="drive_motor")
 #               GPIOMotor(pin1=7,pin2=11,name="steering_motor")
