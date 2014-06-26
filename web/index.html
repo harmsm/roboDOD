@@ -27,7 +27,7 @@
       if(socket) {
         socket.onopen = function() {
 
-          document.onkeyup = function KeyCheck(event) {
+          document.onkeydown = function KeyCheck(event) {
 
             var KeyID = event.which; 
 
@@ -56,6 +56,27 @@
                 break;
               }
             }
+
+          document.onkeyup = function KeyCheck(event) {
+
+            var KeyID = event.which; 
+
+            switch(KeyID) {
+              case 37:
+                socket.send("robot|drivetrain|center");
+                break;
+              case 38:
+                socket.send("robot|drivetrain|coast");
+                break;
+              case 39:
+                socket.send("robot|drivetrain|center");
+                break;
+              case 40:
+                socket.send("robot|drivetrain|coast");
+                break;
+              }
+            }
+
           }
 
           socket.onmessage = function(msg) {

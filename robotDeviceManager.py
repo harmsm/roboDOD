@@ -94,7 +94,9 @@ class DeviceManager(multiprocessing.Process):
     def run(self):
 
         space = SpatialAwareness(box_size=10,resolution=0.05)
+        sample_interval = 100
 
+        observations = []
         while True:
 
             # Get forward range and state vector describing acceleration, velocity, and position
@@ -109,18 +111,18 @@ class DeviceManager(multiprocessing.Process):
             heading = state_vector[3:5]  
 
             # Update the spatial matrix with this reading
-            i, j = space.update(forward_range,position,heading)
-            observations.append((i,j))
+            i, j = space.update(position,heading,forward_range)
+            observations.append([i,j])
 
             # At some sampling interval
             if len(observations) % sample_interval == 0:
 
                 # Output the current robot state vector
-                self.sendData("robot|state_vector|%r" % state_vector)
-               
+                self.output_queue.put("robot|state_vector|%r" % state_vector)
+             
                 # Output the spatial observations that have been made 
                 out_string = "!".join(["%r" % o for o in observations]) 
-                self.sendData("robot|spatial_matrix|%s" % out_string)
+                self.output_queue.put("robot|spatial_matrix|%s" % out_string)
                 observations = []
 
                 self.sendData("robot|forward_range|get")
@@ -139,7 +141,5 @@ class DeviceManager(multiprocessing.Process):
 
                 if device_output != None:
                     self.output_queue.put(device_output)
-
-            num_iterations += 1
 
 

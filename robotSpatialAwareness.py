@@ -64,19 +64,21 @@ class SpatialAwareness:
 
         return i, j
    
-    def update(self,heading,forward_range):
+    def update(self,position,heading,forward_range):
         """
         Update the spatial matrix with an observation along a vector "heading"
         from our current position at a distance of "foward_range."
         """
 
+        heading_offset = heading - position
+
         # Calculate the angle of our heading relative to x.
-        angle = self.calcAngle(array([1.,0.]),heading[0:2])
+        angle = self.calcAngle(np.array([1.,0.]),heading[0:2])
 
         # Given our forward range, we can now place that reading at a fixed 
         # point in x/y space.
-        x = cos(angle)*forward_range
-        y = sin(angle)*forward_range
+        x = position[0] + cos(angle)*forward_range
+        y = position[1] + sin(angle)*forward_range
     
         # Calculate the coordinates in the coarse-grained spatial matrix
         i = int(round((x - self.xlim[0])/self.resolution,0))

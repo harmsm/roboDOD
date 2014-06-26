@@ -283,7 +283,7 @@ class Accelerometer(RobotDevice):
     """
     """
 
-    def __init__(self,port=1,name=None,calibrate=500,noise_cutoff=0.03):
+    def __init__(self,port=1,name=None,calibrate=500,noise_cutoff=0.03,smooth_window=10):
         """
         """
 
@@ -299,6 +299,7 @@ class Accelerometer(RobotDevice):
         #                        distance traveled
         self.state_vector = np.zeros(9,dtype=float)
         self.noise_cutoff = noise_cutoff
+        self.smooth_window = smooth_window
         
         print("Calibrating accelerometer.")
         calibration_state_vector = np.zeros((calibrate,3),dtype=float)
@@ -344,12 +345,13 @@ class Accelerometer(RobotDevice):
 
         self.previous_time = self.current_time
 
-        acceleration = np.array(self.accel.getAxes()) + self.offsets
-
+        all_accel = np.zeros((self.smooth_window,3),dtype=float)
+        for i in range(self.smooth_window):
+            all_accel[i,] = np.array(self.accel.getAxes()) 
+        
+        acceleration = np.mean(all_accel,axis=0) + self.offsets
         #simple noise filter
-        acceleration = acceleration*(np.abs(acceleration) > self.noise_cutoff)
-
-        print("Acceleration",acceleration)
+        #acceleration = acceleration*(np.abs(acceleration) > self.noise_cutoff)
 
         self.current_time = time.time()
 
