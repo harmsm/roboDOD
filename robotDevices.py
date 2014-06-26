@@ -21,6 +21,7 @@ __date__ = "2014-06-18"
 from random import random
 from lowLevel import *
 import time
+import numpy as np
 
 class RobotDeviceError(Exception):
     """
@@ -282,7 +283,7 @@ class Accelerometer(RobotDevice):
     """
     """
 
-    def __init__(self,port=1,name=None):
+    def __init__(self,port=1,name=None,calibrate=500,noise_cutoff=0.03):
         """
         """
 
@@ -291,22 +292,36 @@ class Accelerometer(RobotDevice):
         self.accel = i2c.ADXL345Accelerometer(port)
         self.control_dict = {"get",self.getAccelData}
 
+
         self.has_a_message = False
         # x, y, z, magnitude for acceleration
         #                        velocity
         #                        distance traveled
-        self.values = [0.0 for i in range(12)]
+        self.state_vector = np.zeros(9,dtype=float)
+        self.noise_cutoff = noise_cutoff
+        
+        print("Calibrating accelerometer.")
+        calibration_state_vector = np.zeros((calibrate,3),dtype=float)
+        for i in range(calibrate):
+            calibration_state_vector[i,] = self.accel.getAxes()
+
+        self.offsets = np.array([0.,0.,0.]) - np.mean(calibration_state_vector,axis=0)
+
+        print("Calibration complete.  Offsets are %r" % self.offsets)
+
+        # Put acceleration into m/s
+        self.scale = 9.8
+            
+        # Set up timers 
+        self.previous_time = time.time()
+        self.current_time = time.time() 
+
 
     def getAccelData(self):
         """
         """
 
-        self.values = [0.0,0.0,0.0,0.0,
-                       0.0,0.0,0.0,0.0,
-                       0.0,0.0,0.0,0.0]
-
-        self.values[0:3] = self.accel.getAxes()
-
+        v = self.getNow()
         self.has_a_message = True
 
     def getData(self):
@@ -318,7 +333,33 @@ class Accelerometer(RobotDevice):
         if self.has_a_message:
             self.has_a_message = False
 
-            return "%.10e," % (self.values)
+            return "%.10e," % (self.state_vector)
 
         return None
 
+    def getNow(self):
+        """
+        Immediately return accelerometer state_vector.
+        """
+
+        self.previous_time = self.current_time
+
+        acceleration = np.array(self.accel.getAxes()) + self.offsets
+
+        #simple noise filter
+        acceleration = acceleration*(np.abs(acceleration) > self.noise_cutoff)
+
+        print("Acceleration",acceleration)
+
+        self.current_time = time.time()
+
+        dt = self.current_time - self.previous_time
+
+        velocity = dt*acceleration
+        position = dt*velocity
+        self.state_vector[0:3] = acceleration
+        self.state_vector[3:6] += velocity
+        self.state_vector[6:9] += position
+         
+        return self.state_vector
+        
