@@ -12,6 +12,8 @@ and shutDown, which is used to safely turn off the hardware.
 
 Communication is all asynchronous at the moment.  A request for data is sent
 via sendData, and then picked up the next time the manager polls via getData. 
+
+To access data without the asynchronous stuff, use the getNow method.
 """ 
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
@@ -81,7 +83,14 @@ class RobotDevice:
             err = "%s is not a recognized command for %s." % (command,
                                                               self.__class__.__name__)
             raise RobotDeviceError(err)
-    
+   
+    def getNow(self,command):
+        """
+        Return value immediately; forget that asynchronous stuff.
+        """
+        
+        return None
+ 
     def shutDown(self):
         """
         Safely shut down the piece of hardware.  
@@ -260,19 +269,26 @@ class RangeFinder(RobotDevice):
 
             return "robot|%s|%.12f" % (self.name,self.range_value)
 
-        return None            
+        return None
+
+    def getNow(self):
+        """
+        Return current range -- don't bother with that asynchronous stuff.
+        """
+
+        return self.range_finder.getRange()
 
 class Accelerometer(RobotDevice):
     """
     """
 
-    def __init__(self,name=None):
+    def __init__(self,port=1,name=None):
         """
         """
 
         RobotDevice.__init__(self,name)
         
-        self.accel = i2c.ADXL345Accelerometer()
+        self.accel = i2c.ADXL345Accelerometer(port)
         self.control_dict = {"get",self.getAccelData}
 
         self.has_a_message = False
@@ -288,6 +304,8 @@ class Accelerometer(RobotDevice):
         self.values = [0.0,0.0,0.0,0.0,
                        0.0,0.0,0.0,0.0,
                        0.0,0.0,0.0,0.0]
+
+        self.values[0:3] = self.accel.getAxes()
 
         self.has_a_message = True
 

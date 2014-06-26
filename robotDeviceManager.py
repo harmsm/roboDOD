@@ -6,6 +6,7 @@ __date__ = "2014-06-18"
 
 import multiprocessing, time
 from robotDevices import InfoDevice
+from robotSpatialAwareness import SpatialAwareness
 
 class RobotError(Exception):
     """
@@ -92,14 +93,37 @@ class DeviceManager(multiprocessing.Process):
  
     def run(self):
 
-        num_iterations = 0
-        SAMPLING_CONSTANT = 1000
- 
+        space = SpatialAwareness(box_size=10,resolution=0.05)
+
         while True:
 
-            if num_iterations % SAMPLING_CONSTANT == 0:
+            # Get forward range and state vector describing acceleration, velocity, and position
+            forward_range = self.loaded_devices[self.loaded_devices_dict["forward_range"]].getNow()
+            state_vector = self.loaded_devices[self.loaded_devices_dict["accelerometer"]].getNow()
+   
+            # Current position (x,y)
+            position = state_vector[6:8]
+
+            # User the current veloctiy as the heading.  Assumes no slide.  Going
+            # to be noisy.  In the future, replace with a magnemeter reading.
+            heading = state_vector[3:5]  
+
+            # Update the spatial matrix with this reading
+            i, j = space.update(forward_range,position,heading)
+            observations.append((i,j))
+
+            # At some sampling interval
+            if len(observations) % sample_interval == 0:
+
+                # Output the current robot state vector
+                self.sendData("robot|state_vector|%r" % state_vector)
+               
+                # Output the spatial observations that have been made 
+                out_string = "!".join(["%r" % o for o in observations]) 
+                self.sendData("robot|spatial_matrix|%s" % out_string)
+                observations = []
+
                 self.sendData("robot|forward_range|get")
-                num_iterations = 1
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device
@@ -117,3 +141,5 @@ class DeviceManager(multiprocessing.Process):
                     self.output_queue.put(device_output)
 
             num_iterations += 1
+
+
