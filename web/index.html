@@ -9,8 +9,6 @@
 
     <p/>
     <video width="426" height="240" controls>
-      <!-- <source src="http://raspberrypi:8080/static/F9R_1000m_Fin_Flight_Onboard_Cam_and_Wide_Shot.mp4" type="video/mpeg4"> -->
-      <!-- <source src="http://raspberrypi:8080/static/stream.mp4" type="video/mp4"> -->
       <source src="http://raspberrypi:8080/static/F9R_1000m_Fin_Flight_Onboard_Cam_and_Wide_Shot.ogg" type="video/ogg">
       Your browser does not support the video tag.
     </video> 
@@ -21,6 +19,8 @@
 
     <script>
 
+      var last_message = "";
+      var too_close = 0;
       var host = "ws://raspberrypi:8080/ws";
       var socket = new WebSocket(host);
 
@@ -35,18 +35,31 @@
               case 16:
                 socket.send("robot|drivetrain|stop");
                 socket.send("robot|drivetrain|coast");
+                last_message = "robot|drivetrain|coast";
                 break;
               case 37:
-                socket.send("robot|drivetrain|left");
+                if (last_message != "robot|drivetrain|left"){
+                  last_message = "robot|drivetrain|left";
+                  socket.send(last_message);
+                }
                 break;
               case 38:
-                socket.send("robot|drivetrain|forward");
+                if (last_message != "robot|drivetrain|forward"){
+                  last_message = "robot|drivetrain|forward";
+                  socket.send(last_message);
+                }
                 break;
               case 39:
-                socket.send("robot|drivetrain|right");
+                if (last_message != "robot|drivetrain|right"){
+                  last_message = "robot|drivetrain|right";
+                  socket.send(last_message);
+                }
                 break;
               case 40:
-                socket.send("robot|drivetrain|reverse");
+                if (last_message != "robot|drivetrain|reverse"){
+                  last_message = "robot|drivetrain|reverse";
+                  socket.send(last_message);
+                }
                 break;
               case 67:
                 socket.send("robot|drivetrain|center");
@@ -63,16 +76,20 @@
 
             switch(KeyID) {
               case 37:
-                socket.send("robot|drivetrain|center");
+                last_message = "robot|drivetrain|center";
+                socket.send(last_message);
                 break;
               case 38:
-                socket.send("robot|drivetrain|coast");
+                last_message = "robot|drivetrain|coast";
+                socket.send(last_message);
                 break;
               case 39:
-                socket.send("robot|drivetrain|center");
+                last_message = "robot|drivetrain|center";
+                socket.send(last_message);
                 break;
               case 40:
-                socket.send("robot|drivetrain|coast");
+                last_message = "robot|drivetrain|coast";
+                socket.send(last_message);
                 break;
               }
             }
@@ -92,6 +109,17 @@
       function showServerResponse(txt) {
           if (txt.split("|")[1] == "forward_range"){
             var dist = parseFloat(txt.split("|")[2]);
+            if (dist < 0.25){
+                if (too_close == 0){
+                    document.getElementById("proximity").style.color="red";
+                    too_close = 1;
+                }
+            } else {
+                if (too_close == 1){
+                    document.getElementById("proximity").style.color="black";
+                    too_close = 0;
+                }
+            }
             document.getElementById("proximity").innerHTML = dist.toFixed(3);
           } else {
             var p = document.createElement('p');

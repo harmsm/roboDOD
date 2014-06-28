@@ -94,11 +94,12 @@ class DeviceManager(multiprocessing.Process):
     def run(self):
 
         space = SpatialAwareness(box_size=10,resolution=0.05)
-        sample_interval = 100
+        sample_interval = 1000
 
         observations = []
         while True:
 
+            """
             # Get forward range and state vector describing acceleration, velocity, and position
             forward_range = self.loaded_devices[self.loaded_devices_dict["forward_range"]].getNow()
             state_vector = self.loaded_devices[self.loaded_devices_dict["accelerometer"]].getNow()
@@ -110,19 +111,23 @@ class DeviceManager(multiprocessing.Process):
             # to be noisy.  In the future, replace with a magnemeter reading.
             heading = state_vector[3:5]  
 
-            # Update the spatial matrix with this reading
-            i, j = space.update(position,heading,forward_range)
-            observations.append([i,j])
-
+            try:
+                # Update the spatial matrix with this reading
+                i, j = space.update(position,heading,forward_range)
+                observations.append([i,j])
+            except ValueError:
+                pass
+            """
+            observations.append(1)
             # At some sampling interval
             if len(observations) % sample_interval == 0:
 
                 # Output the current robot state vector
-                self.output_queue.put("robot|state_vector|%r" % state_vector)
+                #self.output_queue.put("robot|state_vector|%r" % state_vector)
              
                 # Output the spatial observations that have been made 
-                out_string = "!".join(["%r" % o for o in observations]) 
-                self.output_queue.put("robot|spatial_matrix|%s" % out_string)
+                #out_string = "!".join(["%r" % o for o in observations]) 
+                #self.output_queue.put("robot|spatial_matrix|%s" % out_string)
                 observations = []
 
                 self.sendData("robot|forward_range|get")
