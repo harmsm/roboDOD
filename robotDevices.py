@@ -20,7 +20,7 @@ __date__ = "2014-06-18"
 
 from random import random
 from lowLevel import *
-import time
+import time, multiprocessing
 import numpy as np
 
 class RobotDeviceError(Exception):
@@ -258,6 +258,7 @@ class RangeFinder(RobotDevice):
         """
 
         self.has_a_message = True
+        
         self.range_value = self.range_finder.getRange()
 
     def getData(self):

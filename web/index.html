@@ -8,10 +8,8 @@
   <body>
 
     <p/>
-    <video width="426" height="240" controls>
-      <source src="http://raspberrypi:8080/static/F9R_1000m_Fin_Flight_Onboard_Cam_and_Wide_Shot.ogg" type="video/ogg">
-      Your browser does not support the video tag.
-    </video> 
+    
+    <canvas id="moving_map" width="800" height="800" style="border:0px solid #FF0000;"></canvas> 
     <p>Forward proximity (m):</p><p id=proximity></p>
 
     <p><span style="font-weight:bold">DOD says:</span></p>
@@ -129,6 +127,63 @@
       }   
 
     </script>
+
+    <script>
+    
+        // Script for updating moving map.  Currently hacked to generate random
+        // values for the density at each point in the grid.
+    
+        RGBToHex = function(r,g,b){
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // HACK
+        var density = 0.5;    
+ 
+        var i = 0; 
+        var j = 0;
+        var x = 0;
+        var y = 0;
+        var mainMatrix = Array(200);
+        for (i = 0; i < 200; i++){
+            mainMatrix[i] = Array(200);
+        } 
+
+        // Initialize drawing area
+        var c = document.getElementById("moving_map");
+        var ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, ctx.width, ctx.height);
+        ctx.fillStyle = "#FF0000";
+
+        // Update the display every 500 ms.
+        var nIntervId = setInterval(updateDrawing,500);
+   
+        function updateDrawing(){
+
+            // Update the matrix
+            for (i = 0; i < 200; i++){
+                for (j = 0; j < 200; j++){
+                    if (Math.random() < density){
+                        mainMatrix[i][j] = 255 - Math.floor(Math.random()*255);
+                    } else { 
+                        mainMatrix[i][j] = 255;
+                    }
+                }
+            }
+          
+            // Update the display 
+            ctx.clearRect(0, 0, 800, 800);  //ctx.width, ctx.height);
+            for (i = 0; i < 200; i++){
+                for (j = 0; j < 200; j++){
+                    ctx.fillStyle=RGBToHex(255,mainMatrix[i][j],mainMatrix[i][j]);
+                    ctx.fillRect(i*4,j*4,4,4);
+                }
+            }
+        }
+
+
+    </script> 
+
   </body>
 </html>
 
