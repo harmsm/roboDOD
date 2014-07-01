@@ -19,6 +19,8 @@ import tornado.websocket
 import tornado.gen
 from tornado.options import define, options
 
+import socket
+
 import datetime, time, sys
 import multiprocessing
 

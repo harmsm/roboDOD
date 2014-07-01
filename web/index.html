@@ -19,7 +19,8 @@
 
       var last_message = "";
       var too_close = 0;
-      var host = "ws://raspberrypi:8080/ws";
+      var host = "ws://" + location.host + ":8080/ws";
+      //raspberrypi:8080/ws";
       var socket = new WebSocket(host);
 
       if(socket) {
