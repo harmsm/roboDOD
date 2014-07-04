@@ -9,7 +9,7 @@
 
     <p/>
     
-    <canvas id="moving_map" width="800" height="800" style="border:0px solid #FF0000;"></canvas> 
+    <canvas id="moving_map" width="800" height="800" style="border:0px solid #FF0000;"></canvas>
     <p>Forward proximity (m):</p><p id=proximity></p>
 
     <p><span style="font-weight:bold">DOD says:</span></p>
@@ -19,8 +19,8 @@
 
       var last_message = "";
       var too_close = 0;
-      var host = "ws://" + location.host + ":8080/ws";
-      //raspberrypi:8080/ws";
+      var host = "ws://192.168.2.135:8080/ws";
+      //var host = "ws://" + location.host + ":8080/ws";
       var socket = new WebSocket(host);
 
       if(socket) {
@@ -133,13 +133,15 @@
     
         // Script for updating moving map.  Currently hacked to generate random
         // values for the density at each point in the grid.
+        var robot_icon = new Image();
+        robot_icon.src = "http://192.168.2.135:8080/static/robot_icon.png";
     
         RGBToHex = function(r,g,b){
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         }
 
         // HACK
-        var density = 0.5;    
+        var density = 0.5;   
  
         var i = 0; 
         var j = 0;
@@ -182,11 +184,8 @@
             }
 
             // Draw the robot on the display
-            var robot_icon = new Image();
-            robot_icon.src = "robot-icon.png";
             ctx.drawImage(robot_icon,400,400) 
         }
-
 
     </script> 
 
