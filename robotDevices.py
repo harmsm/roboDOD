@@ -25,6 +25,7 @@ import numpy as np
 
 class RobotDeviceError(Exception):
     """
+    General error class for this module.
     """
 
     pass
@@ -40,7 +41,7 @@ class RobotDevice:
         if name != None:
             self.name = name
         else:
-            self.name = "%s%i" % (self.__class__.__name__,int(random()*100000))
+            self.name = "%s%.3f" % (self.__class__.__name__,time.time())
 
         self.control_dict = {}
         self.manager = None
@@ -171,7 +172,8 @@ class TwoMotorDriveSteer(RobotDevice):
     reverse, the steer motor moves the wheels left and right.
     """ 
  
-    def __init__(self,drive_pin1,drive_pin2,steer_pin1,steer_pin2,name=None):
+    def __init__(self,drive_pin1,drive_pin2,steer_pin1,steer_pin2,name=None,
+                 left_return_constant=0.03,right_return_constant=0.03):
         """
         Initialize the motors.
         """
@@ -191,8 +193,8 @@ class TwoMotorDriveSteer(RobotDevice):
         
         self.current_steer_motor_state = 0
 
-        self.LEFT_RETURN_CONSTANT =  0.03
-        self.RIGHT_RETURN_CONSTANT = 0.03
+        self.left_return_constant =  left_return_constant
+        self.right_return_constant = right_return_constant
 
     def steerLeft(self):
         """
@@ -216,14 +218,14 @@ class TwoMotorDriveSteer(RobotDevice):
         if self.current_steer_motor_state == -1:
 
            self.steer_motor.reverse()
-           time.sleep(self.LEFT_RETURN_CONSTANT)
+           time.sleep(self.left_return_constant)
            self.steer_motor.coast()
 
         # Steering wheels in the right-hand position
         if self.current_steer_motor_state == 1:
             
             self.steer_motor.forward()
-            time.sleep(self.LEFT_RETURN_CONSTANT)
+            time.sleep(self.left_return_constant)
             self.steer_motor.coast()
 
         self.steer_motor.coast()

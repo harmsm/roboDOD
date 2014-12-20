@@ -8,18 +8,24 @@ import multiprocessing, time
 from robotDevices import InfoDevice
 from robotSpatialAwareness import SpatialAwareness
 
-class RobotError(Exception):
+class RobotDeviceManagerError(Exception):
     """
+    General error class for this module. 
     """
 
     pass
 
 class DeviceManager(multiprocessing.Process):
     """
+    Class for aynchronous communication and integration between all of the 
+    devices attached to the robot.  Inherits from a multiprocessing.Process
+    class, meaning that communication etc. can be polled via the input_queue
+    and output_queues. 
     """
  
-    def __init__(self,input_queue,output_queue,device_list=[]):
+    def __init__(self,input_queue,output_queue,device_list=[],sample_interval=1000):
         """
+        
         """
 
         multiprocessing.Process.__init__(self)
@@ -34,6 +40,8 @@ class DeviceManager(multiprocessing.Process):
 
         # Load a virtual device for dealing with "info" commands
         self.loadDevice(InfoDevice(name="info"))
+
+        self.sample_interval = sample_interval
     
     def loadDevice(self,d):
         """
@@ -44,7 +52,7 @@ class DeviceManager(multiprocessing.Process):
         self.loaded_devices.append(d)
         if d.name in list(self.loaded_devices_dict.keys()):
             err = "Device %s already connected!\n" % d.name
-            raise RobotError(err)
+            raise RobotDeviceManagerError(err)
         self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
     def unloadDevice(self,device_name):
@@ -85,16 +93,15 @@ class DeviceManager(multiprocessing.Process):
                 self.loaded_devices[self.loaded_devices_dict[packet[1]]].sendData(packet[2])
             except KeyError:
                 err = "Device %s not loaded.\n" % (key)
-                raise RobotError(err)
+                raise RobotDeviceManagerError(err)
        
         except ValueError:
             err = "Mangled packet (%s) recieved!\n" % (data)
-            raise RobotError(err) 
+            raise RobotDeviceManagerError(err) 
  
     def run(self):
 
         space = SpatialAwareness(box_size=10,resolution=0.05)
-        sample_interval = 1000
 
         observations = []
         while True:
@@ -120,7 +127,7 @@ class DeviceManager(multiprocessing.Process):
             """
             observations.append(1)
             # At some sampling interval
-            if len(observations) % sample_interval == 0:
+            if len(observations) % self.sample_interval == 0:
 
                 # Output the current robot state vector
                 #self.output_queue.put("robot|state_vector|%r" % state_vector)
