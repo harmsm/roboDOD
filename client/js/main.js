@@ -1,5 +1,7 @@
-var last_sent_message = '';
-var last_recieved_message = '';
+/* Global variables accessible across all functions.  */
+
+var LAST_SENT_MESSAGE = '';
+var LAST_RECIEVED_MESSAGE = '';
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
@@ -52,9 +54,9 @@ function sendMessage(socket,message,allow_repeat){
     /* Send a message to the socket.  allow_repeat is a bool that says whether
      * we should pass the same message over and over. */
 
-    if (last_sent_message != message && allow_repeat == false){
+    if (LAST_SENT_MESSAGE != message && allow_repeat == false){
         socket.send(message);
-        last_sent_message = message;
+        LAST_SENT_MESSAGE = message;
     }
 
 }
