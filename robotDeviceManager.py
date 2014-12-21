@@ -130,7 +130,7 @@ class DeviceManager(multiprocessing.Process):
                 #self.output_queue.put("robot|spatial_matrix|%s" % out_string)
                 observations = []
 
-                self.sendData("robot|forward_range|get")
+                #self.sendData("robot|forward_range|get")
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device

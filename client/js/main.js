@@ -11,7 +11,12 @@ function openSocket(){
 
     /* Open up the socket */
 
-    var host = "ws://raspberrypi:8080/ws";
+    /* Grab current url, strip "index.html" if present, strip trailing slash" */
+    var url = location.href.replace(/https?:\/\//i, "");
+    url = url.replace(/index.html$/,"");
+    url = url.replace(/\/+$/, "");
+
+    var host = "ws://" + url + "/ws";
     var socket = new WebSocket(host);
 
     if(socket) {

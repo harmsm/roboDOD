@@ -25,14 +25,14 @@ import multiprocessing
 import robotConfiguration
 from robotDeviceManager import DeviceManager
  
-define("port", default=8080, help="run on the given port", type=int)
+define("port", default=8081, help="run on the given port", type=int)
  
 clients = []
 
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        self.render('web/index.html')
+        self.render('client/index.html')
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
@@ -121,7 +121,11 @@ def main(argv=None):
         handlers=[
             (r"/", IndexHandler),
             (r"/ws", WebSocketHandler),
-            (r"/static/(.*)",tornado.web.StaticFileHandler,{'path':"web/"}),
+            (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
+            (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
+            (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
+            (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':"client/fonts/"}),
+            (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
         ], queue=dm.input_queue
     )
     httpServer = tornado.httpserver.HTTPServer(app)

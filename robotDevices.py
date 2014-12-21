@@ -19,7 +19,8 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
 from random import random
-from lowLevel import *
+# XXX
+#from lowLevel import *
 import time, multiprocessing
 import numpy as np
 
