@@ -7,6 +7,7 @@
     <title>DOD Connection Client</title>
     
     <link href="css/bootstrap.min.css" rel="stylesheet" media="screen"></link>
+    <link href="css/client.css" rel="stylesheet" media="screen"></link>
 
 </head>
 
@@ -14,12 +15,71 @@
 
 <div id="total_container" class="container main-container">
 
-    <h4>DOD Console</h4>
-    <div class="panel panel-default">
-        <div class="panel-body">
-        Console!
-        </div>
+    <div class="row instrument">
+        <div class="well">Connected</div>
     </div>
+
+    <div class="row instrument-panel">
+
+        <div class="col-xs-12 col-sm-5 text-center instrument">
+
+            <div class="row">
+                <button type="button" class="btn btn-default btn-xl" aria-label="Forward">
+                    <span class="glyphicon glyphicon-chevron-up glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <button type="button" class="btn btn-default btn-xl" aria-label="Left">
+                    <span class="glyphicon glyphicon-chevron-left glyphicon-large" aria-hidden="true"></span>
+                </button>
+
+                <button type="button" class="btn btn-default btn-xl" aria-label="Stop">
+                    <span class="glyphicon glyphicon-stop glyphicon-large" aria-hidden="true"></span>
+                </button>
+
+                <button type="button" class="btn btn-default btn-xl" aria-label="Right">
+                    <span class="glyphicon glyphicon-chevron-right glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <button type="button" class="btn btn-default btn-xl" aria-label="Reverse">
+                    <span class="glyphicon glyphicon-chevron-down glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+    
+            <div class="row">
+                <button type="button" class="btn btn-default btn-block" aria-label="Flash">
+                    <span class="glyphicon glyphicon-flash glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <div class="well">Range</div>
+            </div>
+
+
+        </div>
+
+        <div class="col-xs-12 col-sm-7">
+            <textarea class="form-control terminal" rows="3">Test</textarea>
+            <!--<div class="well terminal">Console!</div> -->
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="well">RoboDOD connection client version 0.1</div>
+    </div>        
 
     <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
@@ -28,7 +88,6 @@
 
 </div>
 
-<p>Test2</p>
 
 </body>
 </html>
