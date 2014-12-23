@@ -8,7 +8,7 @@ import multiprocessing, time
 from robotDevices import InfoDevice
 from robotSpatialAwareness import SpatialAwareness
 
-class RobotError(Exception):
+class RobotDeviceManagerError(Exception):
     """
     """
 
@@ -43,8 +43,8 @@ class DeviceManager(multiprocessing.Process):
         d.connectManager(self.__class__.__name__)
         self.loaded_devices.append(d)
         if d.name in list(self.loaded_devices_dict.keys()):
-            err = "Device %s already connected!\n" % d.name
-            raise RobotError(err)
+            err = "robot|err|device %s already connected!\n" % d.name
+            raise RobotDeviceManagerError(err)
         self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
     def unloadDevice(self,device_name):
@@ -84,12 +84,12 @@ class DeviceManager(multiprocessing.Process):
             try:
                 self.loaded_devices[self.loaded_devices_dict[packet[1]]].sendData(packet[2])
             except KeyError:
-                err = "Device %s not loaded.\n" % (key)
-                raise RobotError(err)
+                err = "robot|error|device %s not loaded.\n" % (packet[1])
+                raise RobotDeviceManagerError(err)
        
         except ValueError:
-            err = "Mangled packet (%s) recieved!\n" % (data)
-            raise RobotError(err) 
+            err = "robot|error|mangled packet (%s) recieved!\n" % (data)
+            raise RobotDeviceManagerError(err) 
  
     def run(self):
 

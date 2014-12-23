@@ -146,6 +146,7 @@ def main(argv=None):
     # check for robot output 
     mainLoop = tornado.ioloop.IOLoop.instance()
     scheduler = tornado.ioloop.PeriodicCallback(checkResults, 10, io_loop = mainLoop)
+
     scheduler.start()
     mainLoop.start()
  

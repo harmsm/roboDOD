@@ -7,6 +7,18 @@ var LAST_RECIEVED_MESSAGE = '';
 /* Basic socket functions */
 /* ------------------------------------------------------------------------- */
 
+function logger(message){
+
+    console.log(message);
+
+    $("#terminal").append(message + "\n");
+    var term = $("#terminal");
+    if (term.length){
+        term.scrollTop(term[0].scrollHeight - term.height());
+    }    
+
+}
+
 function openSocket(){ 
 
     /* Open up the socket */
@@ -21,8 +33,9 @@ function openSocket(){
 
     if(socket) {
         socketListener(socket);
+        logger("client|info|connected on " + host);
     } else {
-        console.log("Invalid socket.");
+        logger("client|info|invalid socket \(" + host + "\)" );
     }
 
 }
@@ -42,6 +55,27 @@ function socketListener(socket){
         document.onkeyup = function KeyCheck(event) {
             passKeyRelease(event.which,socket);
         }
+
+
+        $("#left_button").click(function(){
+            logger("robot|drivetrain|left");
+        });
+        $("#right_button").click(function(){
+            logger("robot|drivetrain|right");
+        });
+        $("#forward_button").click(function(){
+            logger("robot|drivetrain|forward");
+        });
+        $("#reverse_button").click(function(){
+            logger("robot|drivetrain|reverse");
+        });
+        $("#stop_button").click(function(){
+            logger("robot|drivetrain|stop");
+        });
+        $("#flash_button").click(function(){
+            logger("robot|ledindicator|flash");
+        });
+
 
     }
 
@@ -74,7 +108,7 @@ function recieveMessage(message) {
  
     var message_array = message.split("|");
 
-    if (message != "robot" || length(message_array) != 3){
+    if (message_array[0] != "robot" || message_array.length != 3){
         console.log("garbled message from dod (" + message + ")");
         return null;
     }
@@ -93,6 +127,16 @@ function recieveMessage(message) {
 /* ------------------------------------------------------------------------- */
 
 function passKeyPress(key,socket){
+
+    $(document).keypress(function(e) {
+        if (e.which == 37 ) { 
+            console.log("X");
+            sendMessage(socket,"robot|drivetrain|left",allow_repeat=false);
+        }
+    });
+     
+
+    return;    
 
     switch(event.which) {
         case 16: // esc
@@ -152,16 +196,18 @@ function recieveForwardRange(dist_string) {
           }
       }
       document.getElementById("proximity").innerHTML = dist.toFixed(3);
+  
+    /*  
     } else {
       var p = document.createElement('p');
       p.innerHTML = txt;
       document.getElementById('output').appendChild(p);
-    }
+    }*/
 
 }
 
 function closeClient(){
-    console.log("connection closed.");    
+    logger("client|info|connection closed.");    
 }
 
 function populateMap( ) { 
@@ -225,3 +271,5 @@ function populateMap( ) {
 }
 
 
+openSocket();
+ 

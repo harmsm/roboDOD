@@ -55,7 +55,7 @@ class RobotDevice:
         if self.manager != None:
             err = "%s already under control of %s.\n" % (self.name,
                                                          self.manager)
-            raise RobotDeviceError(err)
+            raise RobotDeviceError("robot|error|%s" % err)
         else:       
             self.manager = manager
     
@@ -84,7 +84,7 @@ class RobotDevice:
         except KeyError:
             err = "%s is not a recognized command for %s." % (command,
                                                               self.__class__.__name__)
-            raise RobotDeviceError(err)
+            raise RobotDeviceError("robot|error|%s" % err)
    
     def getNow(self,command):
         """
