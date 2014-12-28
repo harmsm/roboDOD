@@ -33,6 +33,7 @@ function openSocket(){
 
     if(socket) {
         socketListener(socket);
+        $("#connection_status").append("<h4 class=\"text-success\">Connected</h4>");
         logger("client|info|connected on " + host);
     } else {
         logger("client|info|invalid socket \(" + host + "\)" );
@@ -270,6 +271,5 @@ function populateMap( ) {
 
 }
 
-
 openSocket();
- 
+
