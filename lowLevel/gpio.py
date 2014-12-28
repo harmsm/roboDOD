@@ -17,7 +17,11 @@ class GPIOMotor:
 
         GPIO.setup(self.pin1, GPIO.OUT)
         GPIO.setup(self.pin2, GPIO.OUT)
-     
+
+        # http://sourceforge.net/p/raspberry-gpio-python/wiki/PWM/
+        # put in pwm control here.
+        
+
     def forward(self):
         GPIO.output(self.pin1, True)
         GPIO.output(self.pin2, False)
@@ -34,7 +38,43 @@ class GPIOMotor:
         GPIO.output(self.pin1, False)
         GPIO.output(self.pin2, False)
 
+class LED:
 
+    def __init__(self,pin):
+        
+        self.pin = pin
+
+        GPIO.setup(self.pin, GPIO.OUT)
+        GPIO.output(self.pin, False)
+
+        self.led_on = False
+
+    def on(self):
+
+        GPIO.output(self.pin,True)
+        self.led_on = True
+    
+
+    def off(self):
+        
+        GPIO.output(self.pin,False)
+        self.led_on = False
+   
+    def flip(self):
+    
+        if self.led_on:
+            self.on()
+        else:
+            self.off()
+
+    def flash(self,period=1000):
+        """
+        Flash the LED on and off with period.
+        """
+    
+        for i in range(period):
+            self.flip()
+            
 class UltrasonicRange:
 
     def __init__(self,trigger_pin,echo_pin,timeout=5000):

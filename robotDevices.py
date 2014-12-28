@@ -3,9 +3,9 @@ __description__ = \
 These classes, built on the base-class RobotDevice, are used to
 provide the hardware-specific functions required for each device.  The
 manager software expects all pieces of hardware to have five public 
-methods: connectManager, which allows the manager to declare to any
+methods: connectToManager, which allows the manager to declare to any
 competing managers that it is in charge of this device; 
-disconnectManager, obviously the inverse of connectManager; getData,
+disconnectFromManager, obviously the inverse of connectToManager; getData,
 which the manager uses to look for any messages the hardware may have
 posted; sendData, which the manager uses to send commands to the hardware;
 and shutDown, which is used to safely turn off the hardware.
@@ -46,7 +46,7 @@ class RobotDevice:
         self.control_dict = {}
         self.manager = None
 
-    def connectManager(self,manager):
+    def connectToManager(self,manager):
         """
         Connect this device to requesting manager, unless we're already connected
         elsewhere.
@@ -59,7 +59,7 @@ class RobotDevice:
         else:       
             self.manager = manager
     
-    def disconnectManager(self):
+    def disconnectFromManager(self):
         """
         Drop the connection to the manager.
         """      
@@ -78,12 +78,26 @@ class RobotDevice:
         """
         Send a commmand to the device. 
         """
-       
+              
+        function_call = command[0]
+
         try:
-            self.control_dict[command]()
+
+            # kwargs are specified, parse!
+            if len(command) > 1:
+                try:
+                    kwargs = eval(command[1])
+                    self.control_dict[function_call](**kwargs)
+                except (SyntaxError,TypeError):
+                    err = "Mangled command arguments (%s)" % command[1]
+                    raise RobotDeviceError(err)
+            # No kwargs specified         
+            else:
+                self.control_dict[function_call]()
+
+        # command not recognized
         except KeyError:
-            err = "%s is not a recognized command for %s." % (command,
-                                                              self.__class__.__name__)
+            err = "Command (%s) not found for %s." % (command,self.__class__.__name__)
             raise RobotDeviceError("robot|error|%s" % err)
    
     def getNow(self,command):
@@ -166,6 +180,7 @@ class GPIOMotor(RobotDevice):
 
         self.motor.coast()
 
+
 class TwoMotorDriveSteer(RobotDevice):
     """
     Two GPIOMotors that work in synchrony.  The drive motor does forward and 
@@ -196,22 +211,16 @@ class TwoMotorDriveSteer(RobotDevice):
         self.RIGHT_RETURN_CONSTANT = 0.03
 
     def steerLeft(self):
-        """
-        """
         
         self.current_steer_motor_state = -1
         self.steer_motor.forward()
 
     def steerRight(self):
-        """
-        """
         
         self.current_steer_motor_state = 1
         self.steer_motor.reverse()
 
     def steerCenter(self):
-        """
-        """
 
         # Steering wheels in the left-hand position
         if self.current_steer_motor_state == -1:
@@ -235,6 +244,92 @@ class TwoMotorDriveSteer(RobotDevice):
         self.steer_motor.coast()
         self.drive_motor.coast()
 
+class TwoMotorCatSteer(RobotDevice):
+    """
+    Two GPIOMotors that work in synchrony as a cat drive.  The left and right
+    motors go forward and reverse independently.  Steering is achieved by 
+    running one forward, the other in reverse.  
+    """ 
+ 
+    def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,name=None):
+        """
+        Initialize the motors.
+        """
+
+        RobotDevice.__init__(self,name)
+
+        self.left_motor = gpio.GPIOMotor(left_pin1,left_pin2)
+        self.right_motor = gpio.GPIOMotor(right_pin1,right_pin2) 
+
+        self.control_dict = {"forward":self.driveForward,
+                             "reverse":self.driveReverse,
+                             "stop":self.motorStop,
+                             "coast":self.motorCoast,
+                             "left":self.steerLeft,
+                             "right":self.steerRight}
+        
+    def driveForward(self):
+
+        self.left_motor.forward()
+        self.right_motor.forward()
+        
+    def driveReverse(self):
+
+        self.left_motor.reverse()
+        self.right_motor.reverse()
+
+    def steerLeft(self):
+        
+        self.left_motor.reverse()
+        self.right_motor.forward()
+
+    def steerRight(self):
+       
+        self.left_motor.forward() 
+        self.right_motor.reverse()
+
+    def motorStop(self):
+
+        self.left_motor.stop()
+        self.right_motor.stop()
+
+    def motorCoast(self):
+
+        self.left_motor.coast()
+        self.right_motor.coast()
+
+    def shutDown(self):
+
+        self.motorCoast()
+
+class LEDIndicatorLight(RobotDevice):
+    """
+    Class for controlling an indicator light.
+    """
+
+    def __init__(self,control_pin,name=None):
+        """
+        Initialize the light.
+        """
+
+        RobotDevice.__init__(self,name)
+
+        self.led = gpio.LED(control_pin)
+
+        self.control_dict = {"on":self.led.on,
+                             "off":self.led.off,
+                             "flip":self.led.flip,
+                             "flash":self.led.flash}
+
+    def flashLED(self,seconds_to_flash):
+        """
+        """
+
+        #XX <- set PWM here to some useful flashing frequency (say every 0.5 s?) 
+        # return the end_time to the scheduler so it will turn the system off
+        # at a useful time  
+        end_time = time.time() + seconds_to_flash
+        
 
 class RangeFinder(RobotDevice):
     """

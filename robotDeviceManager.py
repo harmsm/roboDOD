@@ -1,5 +1,8 @@
 __description__ = \
 """
+packet structure:
+robot|device_name|dict_key|[**kwargs]
+
 """
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
@@ -40,7 +43,7 @@ class DeviceManager(multiprocessing.Process):
         Load a device into the DeviceManager.
         """
         
-        d.connectManager(self.__class__.__name__)
+        d.connectToManager(self.__class__.__name__)
         self.loaded_devices.append(d)
         if d.name in list(self.loaded_devices_dict.keys()):
             err = "robot|err|device %s already connected!\n" % d.name
@@ -51,9 +54,14 @@ class DeviceManager(multiprocessing.Process):
         """
         Unload a device from the control of the DeviceManager.
         """
-       
-        index = self.loaded_devices_dict[device_name] 
-        self.loaded_devices[index].disconnectManager()
+
+        try:       
+            index = self.loaded_devices_dict[device_name] 
+        except KeyError:
+            err = "robot|err|device %s is not connected.\n" % device_name
+            raise RobotDeviceManagerError(err)
+
+        self.loaded_devices[index].disconnectFromManager()
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
 
@@ -64,9 +72,9 @@ class DeviceManager(multiprocessing.Process):
         """
 
         for d in self.loaded_devices:
-            d.disconnectManager()
+            d.disconnectFromManager()
 
-    def sendData(self,data):
+    def sendMessage(self,data):
         """ 
         Send data to appropriate device in self.loaded_devices.
         """
@@ -82,7 +90,7 @@ class DeviceManager(multiprocessing.Process):
 
             # Try to send the data to the device 
             try:
-                self.loaded_devices[self.loaded_devices_dict[packet[1]]].sendData(packet[2])
+                self.loaded_devices[self.loaded_devices_dict[packet[1]]].sendData(packet[2:])
             except KeyError:
                 err = "robot|error|device %s not loaded.\n" % (packet[1])
                 raise RobotDeviceManagerError(err)
@@ -93,51 +101,16 @@ class DeviceManager(multiprocessing.Process):
  
     def run(self):
 
-        space = SpatialAwareness(box_size=10,resolution=0.05)
-        sample_interval = 1000
-
-        observations = []
         while True:
 
-            """
-            # Get forward range and state vector describing acceleration, velocity, and position
-            forward_range = self.loaded_devices[self.loaded_devices_dict["forward_range"]].getNow()
-            state_vector = self.loaded_devices[self.loaded_devices_dict["accelerometer"]].getNow()
-   
-            # Current position (x,y)
-            position = state_vector[6:8]
-
-            # User the current veloctiy as the heading.  Assumes no slide.  Going
-            # to be noisy.  In the future, replace with a magnemeter reading.
-            heading = state_vector[3:5]  
-
-            try:
-                # Update the spatial matrix with this reading
-                i, j = space.update(position,heading,forward_range)
-                observations.append([i,j])
-            except ValueError:
-                pass
-            """
-            observations.append(1)
-            # At some sampling interval
-            if len(observations) % sample_interval == 0:
-
-                # Output the current robot state vector
-                #self.output_queue.put("robot|state_vector|%r" % state_vector)
-             
-                # Output the spatial observations that have been made 
-                #out_string = "!".join(["%r" % o for o in observations]) 
-                #self.output_queue.put("robot|spatial_matrix|%s" % out_string)
-                observations = []
-
-                #self.sendData("robot|forward_range|get")
+            #XX <-- Send message, checking status.  If not complete -- say, 
+            # waiting for timestamp -- append the message back to the queue
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device
             if not self.input_queue.empty():
                 user_input = self.input_queue.get()
-                print(user_input)
-                self.sendData(user_input)
+                self.sendMessage(user_input)
                 
             # Rotate through the loaded devices and see if any of them have  
             # output ready for user interface

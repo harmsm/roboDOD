@@ -113,7 +113,7 @@ def main(argv=None):
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put("robot|info|initialize")
+    dm.input_queue.put("robot|info|initializing")
 
     # Initailize handler 
     tornado.options.parse_command_line()
@@ -130,6 +130,8 @@ def main(argv=None):
     )
     httpServer = tornado.httpserver.HTTPServer(app)
     httpServer.listen(options.port)
+
+    # Indicate that robot is ready to listen
     dm.input_queue.put("robot|info|Listening on port: %i" % options.port)
  
     def checkResults():

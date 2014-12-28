@@ -74,9 +74,8 @@ function socketListener(socket){
             logger("robot|drivetrain|stop");
         });
         $("#flash_button").click(function(){
-            logger("robot|ledindicator|flash");
+            logger("robot|attention_light|flash");
         });
-
 
     }
 
@@ -129,23 +128,14 @@ function recieveMessage(message) {
 
 function passKeyPress(key,socket){
 
-    $(document).keypress(function(e) {
-        if (e.which == 37 ) { 
-            console.log("X");
-            sendMessage(socket,"robot|drivetrain|left",allow_repeat=false);
-        }
-    });
-     
-
-    return;    
-
     switch(event.which) {
         case 16: // esc
             sendMessage(socket,"robot|drivetrain|stop",allow_repeat=true);
             sendMessage(socket,"robot|drivetrain|coast",allow_repeat=true);
             break;
         case 37: // left
-            sendMessage(socket,"robot|drivetrain|left",allow_repeat=false);
+            logger("left");
+            //sendMessage(socket,"robot|drivetrain|left",allow_repeat=false);
             break;
         case 38: // up
             sendMessage(socket,"robot|drivetrain|forward",allow_repeat=false);
@@ -160,10 +150,11 @@ function passKeyPress(key,socket){
 }
 
 function passKeyRelease(key,socket){
-
+    
     switch(event.which) {
         case 37: // left
-            sendMessage(socket,"robot|drivetrain|center",allow_repeat=false);
+            logger("left");
+            //sendMessage(socket,"robot|drivetrain|center",allow_repeat=false);
             break;
         case 38: // up
             sendMessage(socket,"robot|drivetrain|coast",allow_repeat=false);
