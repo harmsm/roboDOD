@@ -62,7 +62,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.writeLog(info_string)
 
         # Send connection notice to client
-        self.write_message("robot|info|%s" % info_string)
+        self.write_message("controller|-1|info|%s" % info_string)
  
     def on_message(self, message):
         """
@@ -72,7 +72,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         if self.verbose:
             info_string = "Tornado recieved \"%s\" from client." % message
             self.writeLog(info_string)
-            self.write_message("robot|info|%s" % info_string)
+            self.write_message("robot|-1|info|%s" % info_string)
 
         q = self.application.settings.get('queue')
         q.put(message)
@@ -113,7 +113,7 @@ def main(argv=None):
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put("robot|info|initializing")
+    dm.input_queue.put("robot|-1|info|initializing")
 
     # Initailize handler 
     tornado.options.parse_command_line()
@@ -132,17 +132,20 @@ def main(argv=None):
     httpServer.listen(options.port)
 
     # Indicate that robot is ready to listen
-    dm.input_queue.put("robot|info|Listening on port: %i" % options.port)
+    dm.input_queue.put("robot|-1|info|Listening on port: %i" % options.port)
  
     def checkResults():
         """
-        Basic function to look for output from the robot.
+        Look for output from the robot.
         """
 
         if not dm.output_queue.empty():
-            outputs = dm.output_queue.get()
-            for c in clients:
-                c.write_message(outputs)
+            m = dm.output_queue.get()
+            if m.checkMessageTimestamp() == True:
+                for c in clients:
+                    c.write_message(m.convertMessageToString())
+            else:
+                dm.output_queue.put(m)
 
     # Typical tornado.ioloop initialization, except we added a callback in which we 
     # check for robot output 

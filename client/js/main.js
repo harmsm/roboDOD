@@ -11,7 +11,10 @@ function logger(message){
 
     console.log(message);
 
-    $("#terminal").append(message + "\n");
+    var message_array = message.split("|");
+        
+    $("#terminal").append(message_array[2] + ": ");
+    $("#terminal").append(message_array[3] + "\n");
     var term = $("#terminal");
     if (term.length){
         term.scrollTop(term[0].scrollHeight - term.height());
@@ -34,9 +37,9 @@ function openSocket(){
     if(socket) {
         socketListener(socket);
         $("#connection_status").append("<h4 class=\"text-success\">Connected</h4>");
-        logger("client|info|connected on " + host);
+        logger("controller|-1|info|connected on " + host);
     } else {
-        logger("client|info|invalid socket \(" + host + "\)" );
+        logger("controller|-1|info|invalid socket \(" + host + "\)" );
     }
 
 }
@@ -59,22 +62,23 @@ function socketListener(socket){
 
 
         $("#left_button").click(function(){
-            logger("robot|drivetrain|left");
+            logger("robot|-1|drivetrain|left");
+            sendMessage(socket,"robot|-1|info|test message",true);
         });
         $("#right_button").click(function(){
-            logger("robot|drivetrain|right");
+            logger("robot|-1|drivetrain|right");
         });
         $("#forward_button").click(function(){
-            logger("robot|drivetrain|forward");
+            logger("robot|-1|drivetrain|forward");
         });
         $("#reverse_button").click(function(){
-            logger("robot|drivetrain|reverse");
+            logger("robot|-1|drivetrain|reverse");
         });
         $("#stop_button").click(function(){
-            logger("robot|drivetrain|stop");
+            logger("robot|-1|drivetrain|stop");
         });
         $("#flash_button").click(function(){
-            logger("robot|attention_light|flash");
+            logger("robot|-1|attention_light|flash");
         });
 
     }
@@ -93,7 +97,7 @@ function sendMessage(socket,message,allow_repeat){
     /* Send a message to the socket.  allow_repeat is a bool that says whether
      * we should pass the same message over and over. */
 
-    if (LAST_SENT_MESSAGE != message && allow_repeat == false){
+    if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
         socket.send(message);
         LAST_SENT_MESSAGE = message;
     }
@@ -104,16 +108,17 @@ function recieveMessage(message) {
 
     /* Recieve a message */ 
 
-    last_received_message = message;
+    LAST_RECIEVED_MESSAGE = message;
+
+    logger(message);
  
     var message_array = message.split("|");
 
-    if (message_array[0] != "robot" || message_array.length != 3){
-        console.log("garbled message from dod (" + message + ")");
+    if (message_array[0] != "controller" || message_array.length < 3){
+        logger("garbled message from dod (" + message + ")");
         return null;
     }
 
- 
     if (message_array[1] == "forward_range"){
         recieveForwardRange(message_array[2]);
     }
@@ -130,21 +135,21 @@ function passKeyPress(key,socket){
 
     switch(event.which) {
         case 16: // esc
-            sendMessage(socket,"robot|drivetrain|stop",allow_repeat=true);
-            sendMessage(socket,"robot|drivetrain|coast",allow_repeat=true);
+            sendMessage(socket,"robot|-1|drivetrain|stop",allow_repeat=true);
+            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=true);
             break;
         case 37: // left
             logger("left");
-            //sendMessage(socket,"robot|drivetrain|left",allow_repeat=false);
+            //sendMessage(socket,"robot|-1|drivetrain|left",allow_repeat=false);
             break;
         case 38: // up
-            sendMessage(socket,"robot|drivetrain|forward",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|forward",allow_repeat=false);
             break;
         case 39: // right
-            sendMessage(socket,"robot|drivetrain|right",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|right",allow_repeat=false);
             break;
         case 40: // down
-            sendMessage(socket,"robot|drivetrain|reverse",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|reverse",allow_repeat=false);
             break;
     }
 }
@@ -154,16 +159,16 @@ function passKeyRelease(key,socket){
     switch(event.which) {
         case 37: // left
             logger("left");
-            //sendMessage(socket,"robot|drivetrain|center",allow_repeat=false);
+            //sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
             break;
         case 38: // up
-            sendMessage(socket,"robot|drivetrain|coast",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=false);
             break;
         case 39: // right
-            sendMessage(socket,"robot|drivetrain|center",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
             break;
         case 40: // down
-            sendMessage(socket,"robot|drivetrain|coast",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=false);
             break;
     }
 
@@ -199,7 +204,7 @@ function recieveForwardRange(dist_string) {
 }
 
 function closeClient(){
-    logger("client|info|connection closed.");    
+    logger("controller|-1|info|connection closed.");    
 }
 
 function populateMap( ) { 

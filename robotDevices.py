@@ -21,6 +21,7 @@ __date__ = "2014-06-18"
 from random import random
 # XXX
 #from lowLevel import *
+from robotMessages import *
 import time, multiprocessing
 import numpy as np
 
@@ -46,6 +47,9 @@ class RobotDevice:
         self.control_dict = {}
         self.manager = None
 
+        self.has_a_message = False
+        self.message = None
+
     def connectToManager(self,manager):
         """
         Connect this device to requesting manager, unless we're already connected
@@ -55,7 +59,7 @@ class RobotDevice:
         if self.manager != None:
             err = "%s already under control of %s.\n" % (self.name,
                                                          self.manager)
-            raise RobotDeviceError("robot|error|%s" % err)
+            raise RobotDeviceError("robot|-1|error|%s" % err)
         else:       
             self.manager = manager
     
@@ -71,6 +75,11 @@ class RobotDevice:
         Function to poll this piece of hardware for new data to pass to the 
         manager.
         """
+
+        if self.has_a_message:
+            self.has_a_message = False
+
+            return self.message
 
         return None
 
@@ -98,7 +107,7 @@ class RobotDevice:
         # command not recognized
         except KeyError:
             err = "Command (%s) not found for %s." % (command,self.__class__.__name__)
-            raise RobotDeviceError("robot|error|%s" % err)
+            raise RobotDeviceError("robot|-1|error|%s" % err)
    
     def getNow(self,command):
         """
@@ -140,19 +149,9 @@ class InfoDevice(RobotDevice):
         """
 
         self.has_a_message = True
-        self.message = command
-
-    def getData(self):
-        """
-        """
-    
-        if self.has_a_message:
-            self.has_a_message = False
-
-            return "robot|info|robot recieved %s" % self.message
-
-        return None
-        
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message=("robot recieved %s" % command))
 
 class GPIOMotor(RobotDevice):
     """
@@ -325,6 +324,10 @@ class LEDIndicatorLight(RobotDevice):
         """
         """
 
+        # SET UP FLASHING HERE XX
+
+        self.led.on()
+
         #XX <- set PWM here to some useful flashing frequency (say every 0.5 s?) 
         # return the end_time to the scheduler so it will turn the system off
         # at a useful time  
@@ -365,7 +368,7 @@ class RangeFinder(RobotDevice):
         if self.has_a_message:
             self.has_a_message = False
 
-            return "robot|%s|%.12f" % (self.name,self.range_value)
+            return "robot|-1|%s|%.12f" % (self.name,self.range_value)
 
         return None
 
