@@ -9,18 +9,28 @@ import time
 GPIO.setmode(GPIO.BOARD)
 
 class GPIOMotor:
+    """
+    Class for controlling a DC motor via two GPIO pins.  Motor speed can be
+    controlled via pulse-width modulation.
+    """
     
-    def __init__(self,pin1,pin2):
+    def __init__(self,pin1,pin2,frequency=50,duty_cycle=100):
         
         self.pin1 = pin1
         self.pin2 = pin2
+        self.frequency = frequency
+        self.duty_cycle = duty_cycle
 
         GPIO.setup(self.pin1, GPIO.OUT)
         GPIO.setup(self.pin2, GPIO.OUT)
 
-        # http://sourceforge.net/p/raspberry-gpio-python/wiki/PWM/
-        # put in pwm control here.
-        
+        self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
+        self.pin1_pwm.start(self.duty_cycle)
+
+        self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
+        self.pin2_pwm.start(self.duty_cycle)
+
+        self.coast()
 
     def forward(self):
         GPIO.output(self.pin1, True)
@@ -38,14 +48,43 @@ class GPIOMotor:
         GPIO.output(self.pin1, False)
         GPIO.output(self.pin2, False)
 
-class LED:
+    def setPWMDutyCycle(self,duty_cycle):
 
-    def __init__(self,pin):
+        self.duty_cycle = duty_cycle
+
+        self.pin1_pwm.ChangeDutyCycle(self.duty_cycle)
+        self.pin2_pwm.ChangeDutyCycle(self.duty_cycle)
+    
+    def setPWMFrequency(self,frequency):
+
+        self.frequency = frequency
+
+        self.pin1_pwm.ChangeFrequency(self.frequency)
+        self.pin2_pwm.ChangeFrequency(self.frequency)
+
+    def shutdown(self):
+       
+        self.coast() 
+        self.pin1_pwm.stop()
+        self.pin2_pwm.stop()
+
+class GPIOLED:
+    """
+    Class for controlling an LED via a single GPIO pin.  Brightness and 
+    flashing is controlled by pulse width modulation.
+    """
+
+    def __init__(self,pin,frequency=1,duty_cycle=100):
         
         self.pin = pin
+        self.frequency = frequency
+        self.duty_cycle = duty_cycle
 
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, False)
+
+        self.pwm = GPIO.PWM(self.pin,self.frequency)
+        self.pwm.start(self.duty_cycle) 
 
         self.led_on = False
 
@@ -67,15 +106,34 @@ class LED:
         else:
             self.off()
 
-    def flash(self,period=1000):
+    def setPWMFrequency(self,frequency):
         """
-        Flash the LED on and off with period.
+        Set LED pwm frequency.
         """
-    
-        for i in range(period):
-            self.flip()
-            
+
+        self.frequency = frequency
+        self.pwm.ChangeFrequency(self.frequency)
+ 
+
+    def setPWMDutyCycle(self,duty_cycle):
+        """
+        Set LED PWM duty cycle (how much the LED is on during the oscillation 
+        defined by frequency). 
+        """
+
+        self.duty_cycle = duty_cycle
+        self.pwm.ChangeDutyCycle(self.duty_cycle)
+        
+    def shutdown():
+
+        self.off()
+        self.pwm.stop()
+ 
 class UltrasonicRange:
+    """
+    Class for controlling an ultrasonic range finder via two gpio pins (a 
+    trigger pin that sends out a pulse and a echo pin that recieves the return).
+    """
 
     def __init__(self,trigger_pin,echo_pin,timeout=5000):
 

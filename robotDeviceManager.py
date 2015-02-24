@@ -81,6 +81,7 @@ class DeviceManager(multiprocessing.Process):
         Send data to appropriate device in self.loaded_devices.
         """
 
+
         try:
 
             try:

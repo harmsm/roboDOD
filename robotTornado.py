@@ -63,6 +63,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         # Send connection notice to client
         self.write_message("controller|-1|info|%s" % info_string)
+
  
     def on_message(self, message):
         """

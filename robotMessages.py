@@ -6,12 +6,12 @@ fashion.
 __author__ = "Michael J. Harms"
 __date__ = "2014-12-29"
 
-
 import time
 
 class RobotMessage:
     """
-    Class for handling internal messaging within robot controller.
+    Class for handling timestamped messages and converting between the string
+    packets that need to be sent over the web socket.
     """
 
     def __init__(self,destination=None,delay_time=-1,device_name=None,
@@ -46,6 +46,7 @@ class RobotMessage:
 
     def convertMessageToString(self):
         """
+        Convert a message instance to a string.
         """
         out = "%s|%.3f|%s|%s"  % (self.destination,
                                   self.delay_time,
@@ -56,6 +57,7 @@ class RobotMessage:
 
     def checkMessageTimestamp(self):
         """
+        See if a message is ready to send given its time stamp.
         """
 
         if time.time() > self.minimum_time:

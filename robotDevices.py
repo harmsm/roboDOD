@@ -20,7 +20,7 @@ __date__ = "2014-06-18"
 
 from random import random
 # XXX
-#from lowLevel import *
+from lowLevel import *
 from robotMessages import *
 import time, multiprocessing
 import numpy as np
@@ -47,7 +47,6 @@ class RobotDevice:
         self.control_dict = {}
         self.manager = None
 
-        self.has_a_message = False
         self.message = None
 
     def connectToManager(self,manager):
@@ -76,18 +75,21 @@ class RobotDevice:
         manager.
         """
 
-        if self.has_a_message:
-            self.has_a_message = False
+        if self.message:
+            m = self.message
+            self.message = None
 
-            return self.message
+            return m
 
         return None
 
-    def sendData(self,command):
+    def sendData(self,message):
         """
         Send a commmand to the device. 
         """
-              
+
+        command = message.split("|")
+       
         function_call = command[0]
 
         try:
@@ -139,7 +141,6 @@ class InfoDevice(RobotDevice):
 
         self.control_dict = {}
         self.manager = None
-        self.has_a_message = False
         self.message = None
 
     def sendData(self,command):
@@ -148,7 +149,6 @@ class InfoDevice(RobotDevice):
         device manager.
         """
 
-        self.has_a_message = True
         self.message = RobotMessage(destination="controller",
                                     device_name="info",
                                     message=("robot recieved %s" % command))
@@ -177,7 +177,7 @@ class GPIOMotor(RobotDevice):
         Shut down the motor.
         """
 
-        self.motor.coast()
+        self.motor.shutdown()
 
 
 class TwoMotorDriveSteer(RobotDevice):
@@ -250,15 +250,16 @@ class TwoMotorCatSteer(RobotDevice):
     running one forward, the other in reverse.  
     """ 
  
-    def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,name=None):
+    def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
+                 pwm_frequency=50,pwm_duty_cycle=100,name=None):
         """
         Initialize the motors.
         """
 
         RobotDevice.__init__(self,name)
 
-        self.left_motor = gpio.GPIOMotor(left_pin1,left_pin2)
-        self.right_motor = gpio.GPIOMotor(right_pin1,right_pin2) 
+        self.left_motor = gpio.GPIOMotor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
+        self.right_motor = gpio.GPIOMotor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
 
         self.control_dict = {"forward":self.driveForward,
                              "reverse":self.driveReverse,
@@ -271,6 +272,10 @@ class TwoMotorCatSteer(RobotDevice):
 
         self.left_motor.forward()
         self.right_motor.forward()
+
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message="Going forward")
         
     def driveReverse(self):
 
@@ -281,6 +286,10 @@ class TwoMotorCatSteer(RobotDevice):
         
         self.left_motor.reverse()
         self.right_motor.forward()
+
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message="Turning left")
 
     def steerRight(self):
        
@@ -313,25 +322,29 @@ class LEDIndicatorLight(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-        self.led = gpio.LED(control_pin)
+        self.led = gpio.GPIOLED(control_pin)
 
         self.control_dict = {"on":self.led.on,
                              "off":self.led.off,
                              "flip":self.led.flip,
-                             "flash":self.led.flash}
+                             "flash":self.flashLED,
+                             "setPWM":self.led.setPulseWidthModulation}
+
+        # Take arguments for pwm from __init__ and pass them to set pwm
+
 
     def flashLED(self,seconds_to_flash):
         """
         """
 
-        # SET UP FLASHING HERE XX
-
         self.led.on()
 
-        #XX <- set PWM here to some useful flashing frequency (say every 0.5 s?) 
-        # return the end_time to the scheduler so it will turn the system off
-        # at a useful time  
-        end_time = time.time() + seconds_to_flash
+        # Allows the client to turn on the LED for a fixed number of
+        # seconds by adding a "turn off" message to the output queue
+        self.message = RobotMessage(destination="robot",
+                                    delay_time=seconds_to_flash,
+                                    device_name=self.name,
+                                    message="off")
         
 
 class RangeFinder(RobotDevice):
@@ -348,29 +361,19 @@ class RangeFinder(RobotDevice):
 
         self.range_finder = gpio.UltrasonicRange(echo_pin,trigger_pin,timeout)
         self.control_dict = {"get":self.getRange}
-        self.range_value = -1.0
-        self.has_a_message = False
+        self.range_value = -10.0
+        self.message = None
+
 
     def getRange(self):
         """
         Calculate the range.
         """
 
-        self.has_a_message = True
-        
         self.range_value = self.range_finder.getRange()
-
-    def getData(self):
-        """
-        If a distance was calculated since we last checked, return it.
-        """
-
-        if self.has_a_message:
-            self.has_a_message = False
-
-            return "robot|-1|%s|%.12f" % (self.name,self.range_value)
-
-        return None
+        self.message = RobotMessage(destination="controller",
+                                    device_name=self.name,
+                                    message="%.12f" % self.range_value)
 
     def getNow(self):
         """
@@ -393,7 +396,6 @@ class Accelerometer(RobotDevice):
         self.control_dict = {"get",self.getAccelData}
 
 
-        self.has_a_message = False
         # x, y, z, magnitude for acceleration
         #                        velocity
         #                        distance traveled
@@ -423,20 +425,10 @@ class Accelerometer(RobotDevice):
         """
 
         v = self.getNow()
-        self.has_a_message = True
+        self.message = RobotMessage(destination="controller",
+                                    device_name=self.name,
+                                    message="%.10e," % self.state_vector)
 
-    def getData(self):
-        """
-        Return accelerometer data if it has been calculated.
-        """
-
-        # The device has a message!
-        if self.has_a_message:
-            self.has_a_message = False
-
-            return "%.10e," % (self.state_vector)
-
-        return None
 
     def getNow(self):
         """

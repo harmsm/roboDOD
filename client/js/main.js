@@ -63,13 +63,17 @@ function socketListener(socket){
 
         $("#left_button").click(function(){
             logger("robot|-1|drivetrain|left");
-            sendMessage(socket,"robot|-1|info|test message",true);
+            sendMessage(socket,"robot|-1|drivetrain|left",true);
         });
         $("#right_button").click(function(){
             logger("robot|-1|drivetrain|right");
+            sendMessage(socket,"robot|-1|info|test message",true);
         });
         $("#forward_button").click(function(){
             logger("robot|-1|drivetrain|forward");
+            sendMessage(socket,"robot|-1|info|test message",true);
+            sendMessage(socket,"robot|-1|drivetrain|forward",true);
+            sendMessage(socket,"robot|-1|forward_range|get",true);
         });
         $("#reverse_button").click(function(){
             logger("robot|-1|drivetrain|reverse");
@@ -120,7 +124,7 @@ function recieveMessage(message) {
     }
 
     if (message_array[1] == "forward_range"){
-        recieveForwardRange(message_array[2]);
+        recieveForwardRange(message_array[3]);
     }
 
  
