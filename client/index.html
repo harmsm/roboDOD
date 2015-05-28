@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>DOD Connection Client</title>
+    
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen"></link>
+    <link href="css/client.css" rel="stylesheet" media="screen"></link>
+
+</head>
+
+<body>
+
+<div id="total_container" class="container main-container">
+
+    <div class="row instrument">
+        <div id="connection_status" class="well"></div>
+    </div>
+
+    <div class="row instrument-panel">
+
+        <div class="col-xs-12 col-sm-5 text-center instrument">
+
+            <!-- end nav buttons -->
+
+            <div class="row">
+                <button id="forward_button" type="button" class="btn btn-default btn-xl" aria-label="Forward">
+                    <span class="glyphicon glyphicon-chevron-up glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <button id="left_button" type="button" class="btn btn-default btn-xl" aria-label="Left">
+                    <span class="glyphicon glyphicon-chevron-left glyphicon-large" aria-hidden="true"></span>
+                </button>
+
+                <button id="stop_button" type="button" class="btn btn-default btn-xl" aria-label="Stop">
+                    <span class="glyphicon glyphicon-stop glyphicon-large" aria-hidden="true"></span>
+                </button>
+
+                <button id="right_button" type="button" class="btn btn-default btn-xl" aria-label="Right">
+                    <span class="glyphicon glyphicon-chevron-right glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <button id="reverse_button" type="button" class="btn btn-default btn-xl" aria-label="Reverse">
+                    <span class="glyphicon glyphicon-chevron-down glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+    
+ 
+            <!-- end nav buttons -->
+
+            <span><p></p></span>
+            <div class="row">
+                <div class="btn-group btn-group-lg" role="group" aria-label="...">
+                    <button id="speed_0_button" type="button" class="btn btn-default btn-lg">0</button>
+                    <button id="speed_1_button" type="button" class="btn btn-default btn-lg">1</button>
+                    <button id="speed_2_button" type="button" class="btn btn-default btn-lg">2</button>
+                    <button id="speed_3_button" type="button" class="btn btn-default btn-lg">3</button>
+                    <button id="speed_4_button" type="button" class="btn btn-default btn-lg">4</button>
+                </div>
+            </div>
+
+            <span><p></p></span>
+
+            <div class="row">
+                <button id="flash_button" type="button" class="btn btn-default btn-block" aria-label="Flash">
+                    <span class="glyphicon glyphicon-flash glyphicon-large" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <span><p></p></span>
+            <div class="row">
+                <div class="well" id="forward_range">Range:</div>
+            </div>
+
+        </div>
+
+        <div class="col-xs-12 col-sm-7">
+            <textarea id="terminal" class="form-control terminal" rows="36" disabled></textarea>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="well">RoboDOD connection client version 0.1</div>
+    </div>        
+
+    <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/main.js?HHHACK"></script>
+
+</div>
+
+</body>
+</html>
+
