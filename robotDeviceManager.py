@@ -14,6 +14,7 @@ from copy import copy
 
 class RobotDeviceManagerError(Exception):
     """
+    General error class for this module. 
     """
 
     pass
@@ -21,10 +22,15 @@ class RobotDeviceManagerError(Exception):
 
 class DeviceManager(multiprocessing.Process):
     """
+    Class for aynchronous communication and integration between all of the 
+    devices attached to the robot.  Inherits from a multiprocessing.Process
+    class, meaning that communication etc. can be polled via the input_queue
+    and output_queues. 
     """
  
-    def __init__(self,input_queue,output_queue,device_list=[]):
+    def __init__(self,input_queue,output_queue,device_list=[],sample_interval=1000):
         """
+        
         """
 
         multiprocessing.Process.__init__(self)
@@ -39,6 +45,8 @@ class DeviceManager(multiprocessing.Process):
 
         # Load a virtual device for dealing with "info" commands
         self.loadDevice(InfoDevice(name="info"))
+
+        self.sample_interval = sample_interval
     
     def loadDevice(self,d):
         """
@@ -99,7 +107,6 @@ class DeviceManager(multiprocessing.Process):
         for d in self.loaded_devices:
             d.shutDown()
 
- 
     def run(self):
 
         while True:
