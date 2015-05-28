@@ -19,22 +19,20 @@ import tornado.websocket
 import tornado.gen
 from tornado.options import define, options
 
-import socket
-
-import datetime, time, sys
+import datetime, time, sys, signal
 import multiprocessing
 
 import robotConfiguration
 from robotDeviceManager import DeviceManager
  
-define("port", default=8080, help="run on the given port", type=int)
+define("port", default=8081, help="run on the given port", type=int)
  
 clients = []
 
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        self.render('web/index.html')
+        self.render('client/index.html')
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
@@ -64,7 +62,11 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.writeLog(info_string)
 
         # Send connection notice to client
-        self.write_message("robot|info|%s" % info_string)
+        self.write_message("controller|-1|info|%s" % info_string)
+
+        # Turn on the status light indicating that we're connected.
+        q = self.application.settings.get('queue')
+        q.put("robot|-1|client_connected|on")
  
     def on_message(self, message):
         """
@@ -74,7 +76,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         if self.verbose:
             info_string = "Tornado recieved \"%s\" from client." % message
             self.writeLog(info_string)
-            self.write_message("robot|info|%s" % info_string)
+            self.write_message("robot|-1|info|%s" % info_string)
 
         q = self.application.settings.get('queue')
         q.put(message)
@@ -88,6 +90,10 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         info_string = "Socket connection closed."
         self.writeLog(info_string)
         self.local_log.close()
+        
+        # Turn off the status light indicating that we're connected.
+        q = self.application.settings.get('queue')
+        q.put("robot|-1|client_connected|off")
 
         clients.remove(self)
 
@@ -103,6 +109,17 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
  
 def main(argv=None):
     
+    def signal_handler(signal, frame):
+        dm.shutDown()
+
+        # This is a hack... this should go in low level
+        import RPi.GPIO as GPIO
+        GPIO.cleanup()
+
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     if argv == None:
         argv = sys.argv[1:]
  
@@ -115,7 +132,7 @@ def main(argv=None):
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put("robot|info|initialize")
+    dm.input_queue.put("robot|-1|info|initializing")
 
     # Initailize handler 
     tornado.options.parse_command_line()
@@ -123,29 +140,41 @@ def main(argv=None):
         handlers=[
             (r"/", IndexHandler),
             (r"/ws", WebSocketHandler),
-            (r"/static/(.*)",tornado.web.StaticFileHandler,{'path':"web/"}),
+            (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
+            (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
+            (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
+            (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':"client/fonts/"}),
+            (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
         ], queue=dm.input_queue
     )
     httpServer = tornado.httpserver.HTTPServer(app)
     httpServer.listen(options.port)
-    dm.input_queue.put("robot|info|Listening on port: %i" % options.port)
+
+    # Indicate that robot is ready to listen
+    dm.input_queue.put("robot|-1|info|Listening on port: %i" % options.port)
+    dm.input_queue.put("robot|-1|system_up|on")
  
     def checkResults():
         """
-        Basic function to look for output from the robot.
+        Look for output from the robot.
         """
 
         if not dm.output_queue.empty():
-            outputs = dm.output_queue.get()
-            for c in clients:
-                c.write_message(outputs)
+            m = dm.output_queue.get()
+            if m.checkMessageTimestamp() == True:
+                for c in clients:
+                    c.write_message(m.convertMessageToString())
+            else:
+                dm.output_queue.put(m)
 
     # Typical tornado.ioloop initialization, except we added a callback in which we 
     # check for robot output 
     mainLoop = tornado.ioloop.IOLoop.instance()
     scheduler = tornado.ioloop.PeriodicCallback(checkResults, 10, io_loop = mainLoop)
+
     scheduler.start()
     mainLoop.start()
  
 if __name__ == "__main__":
+
     main()
