@@ -19,7 +19,6 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
 from random import random
-# XXX
 from lowLevel import *
 from robotMessages import *
 import time, multiprocessing
@@ -125,6 +124,7 @@ class RobotDevice:
 
         pass
 
+
 class InfoDevice(RobotDevice):
     """
     This is a virtual device for dealing with general messages that apply to 
@@ -170,7 +170,9 @@ class GPIOMotor(RobotDevice):
         self.control_dict = {"forward":self.motor.forward,
                              "reverse":self.motor.reverse,
                              "stop":self.motor.stop,
-                             "coast":self.motor.coast}
+                             "coast":self.motor.coast,
+                             "set_dutycycle":self.motor.setPWMDutyCycle,
+                             "set_freq":self.motor.setPWMFrequency}
 
     def shutDown(self):
         """
@@ -251,7 +253,7 @@ class TwoMotorCatSteer(RobotDevice):
     """ 
  
     def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
-                 pwm_frequency=50,pwm_duty_cycle=100,name=None):
+                 pwm_frequency=100,pwm_duty_cycle=100,name=None,speed=0):
         """
         Initialize the motors.
         """
@@ -260,14 +262,17 @@ class TwoMotorCatSteer(RobotDevice):
 
         self.left_motor = gpio.GPIOMotor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
         self.right_motor = gpio.GPIOMotor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
-
+    
         self.control_dict = {"forward":self.driveForward,
                              "reverse":self.driveReverse,
                              "stop":self.motorStop,
                              "coast":self.motorCoast,
                              "left":self.steerLeft,
-                             "right":self.steerRight}
-        
+                             "right":self.steerRight,
+                             "setspeed":self.setSpeed}
+
+        self.speed = speed       
+ 
     def driveForward(self):
 
         self.left_motor.forward()
@@ -281,6 +286,10 @@ class TwoMotorCatSteer(RobotDevice):
 
         self.left_motor.reverse()
         self.right_motor.reverse()
+        
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message="Going backward")
 
     def steerLeft(self):
         
@@ -295,6 +304,10 @@ class TwoMotorCatSteer(RobotDevice):
        
         self.left_motor.forward() 
         self.right_motor.reverse()
+        
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message="Turning right")
 
     def motorStop(self):
 
@@ -310,30 +323,43 @@ class TwoMotorCatSteer(RobotDevice):
 
         self.motorCoast()
 
+    def setSpeed(self,speed=0):
+        """
+        Set the speed of the motor.
+        """
+       
+        self.speed = speed
+        self.left_motor.setPWMDutyCycle(speed*25)
+        self.right_motor.setPWMDutyCycle(speed*25)
+                     
+        self.message = RobotMessage(destination="controller",
+                                    device_name="info",
+                                    message="Setting speed to %i" % self.speed)
+
 class LEDIndicatorLight(RobotDevice):
     """
     Class for controlling an indicator light.
     """
 
-    def __init__(self,control_pin,name=None):
+    def __init__(self,control_pin,name=None,frequency=1,duty_cycle=100):
         """
         Initialize the light.
         """
 
         RobotDevice.__init__(self,name)
 
-        self.led = gpio.GPIOLED(control_pin)
+        self.led = gpio.GPIOLED(control_pin,frequency=frequency,duty_cycle=duty_cycle)
 
-        self.control_dict = {"on":self.led.on,
-                             "off":self.led.off,
+        self.control_dict = {"on":self.turnOn,
+                             "off":self.turnOff,
                              "flip":self.led.flip,
-                             "flash":self.flashLED,
-                             "setPWM":self.led.setPulseWidthModulation}
+                             "flash":self.flashLED}
+                             #"setPWM":self.led.setPulseWidthModulation}
 
         # Take arguments for pwm from __init__ and pass them to set pwm
 
 
-    def flashLED(self,seconds_to_flash):
+    def flashLED(self,seconds_to_flash=5):
         """
         """
 
@@ -345,21 +371,43 @@ class LEDIndicatorLight(RobotDevice):
                                     delay_time=seconds_to_flash,
                                     device_name=self.name,
                                     message="off")
-        
+       
+    def turnOn(self):
+        """
+        """
+
+        self.led.on()
+        self.message = RobotMessage(destination="info",device_name=self.name,
+                                    message="LED should now be on.")
+    
+    def turnOff(self):
+        """
+        """
+
+        self.led.off()
+        self.message = RobotMessage(destination="info",device_name=self.name,
+                                    message="LED should now be off.")
+ 
+    def shutDown(self):
+        """
+        """
+
+        self.led.off()
+
 
 class RangeFinder(RobotDevice):
     """
     Class wrapping a GPIO range finder.
     """
 
-    def __init__(self,echo_pin,trigger_pin,name=None,timeout=5000):
+    def __init__(self,trigger_pin,echo_pin,name=None,timeout=5000):
         """
         Initialize ranging system.
         """
 
         RobotDevice.__init__(self,name)
 
-        self.range_finder = gpio.UltrasonicRange(echo_pin,trigger_pin,timeout)
+        self.range_finder = gpio.UltrasonicRange(trigger_pin,echo_pin,timeout)
         self.control_dict = {"get":self.getRange}
         self.range_value = -10.0
         self.message = None
@@ -381,6 +429,7 @@ class RangeFinder(RobotDevice):
         """
 
         return self.range_finder.getRange()
+
 
 class Accelerometer(RobotDevice):
     """

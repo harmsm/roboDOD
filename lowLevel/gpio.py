@@ -25,28 +25,31 @@ class GPIOMotor:
         GPIO.setup(self.pin2, GPIO.OUT)
 
         self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
-        self.pin1_pwm.start(self.duty_cycle)
-
         self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
-        self.pin2_pwm.start(self.duty_cycle)
 
         self.coast()
 
     def forward(self):
-        GPIO.output(self.pin1, True)
-        GPIO.output(self.pin2, False)
+
+        self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
+        self.pin1_pwm.start(self.duty_cycle)
+        self.pin2_pwm.stop()
 
     def reverse(self):
-        GPIO.output(self.pin1, False)
-        GPIO.output(self.pin2, True)
+        self.pin1_pwm.stop()
+        self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
+        self.pin2_pwm.start(self.duty_cycle)
 
     def stop(self):
-        GPIO.output(self.pin1, True)
-        GPIO.output(self.pin2, True)
+
+        self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
+        self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
+        self.pin1_pwm.start(self.duty_cycle)
+        self.pin2_pwm.start(self.duty_cycle)
    
     def coast(self):
-        GPIO.output(self.pin1, False)
-        GPIO.output(self.pin2, False)
+        self.pin1_pwm.stop()
+        self.pin2_pwm.stop()
 
     def setPWMDutyCycle(self,duty_cycle):
 
@@ -81,30 +84,30 @@ class GPIOLED:
         self.duty_cycle = duty_cycle
 
         GPIO.setup(self.pin, GPIO.OUT)
-        GPIO.output(self.pin, False)
 
         self.pwm = GPIO.PWM(self.pin,self.frequency)
-        self.pwm.start(self.duty_cycle) 
+        self.pwm.stop()
 
         self.led_on = False
 
     def on(self):
 
-        GPIO.output(self.pin,True)
+        self.pwm = GPIO.PWM(self.pin,self.frequency)
+        self.pwm.start(self.duty_cycle) 
         self.led_on = True
     
 
     def off(self):
         
-        GPIO.output(self.pin,False)
+        self.pwm.stop()
         self.led_on = False
    
     def flip(self):
     
         if self.led_on:
-            self.on()
-        else:
             self.off()
+        else:
+            self.on()
 
     def setPWMFrequency(self,frequency):
         """
@@ -135,7 +138,7 @@ class UltrasonicRange:
     trigger pin that sends out a pulse and a echo pin that recieves the return).
     """
 
-    def __init__(self,trigger_pin,echo_pin,timeout=5000):
+    def __init__(self,trigger_pin,echo_pin,timeout=50000):
 
         self.trigger_pin = trigger_pin
         self.echo_pin = echo_pin

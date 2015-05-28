@@ -81,9 +81,7 @@ class DeviceManager(multiprocessing.Process):
         Send data to appropriate device in self.loaded_devices.
         """
 
-
         try:
-
             try:
                 self.loaded_devices[self.loaded_devices_dict[message.device_name]].sendData(message.message)
             except KeyError:
@@ -93,6 +91,14 @@ class DeviceManager(multiprocessing.Process):
         except ValueError:
             err = "controller|-1|error|mangled packet (%s) recieved!\n" % (message.asString())
             raise RobotDeviceManagerError(err) 
+
+    def shutDown(self):
+        """
+        """
+
+        for d in self.loaded_devices:
+            d.shutDown()
+
  
     def run(self):
 
@@ -126,7 +132,6 @@ class DeviceManager(multiprocessing.Process):
                 device_output = d.getData()
 
                 if device_output != None:
-
                     if device_output.destination == "robot":
                         self.input_queue.put(device_output)
                     else:

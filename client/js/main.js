@@ -12,6 +12,12 @@ function logger(message){
     console.log(message);
 
     var message_array = message.split("|");
+
+    if (message_array[1] == "robot"){
+        $("#terminal").append("Sending ");
+    } else {
+        $("#terminal").append("Recieving ");
+    }
         
     $("#terminal").append(message_array[2] + ": ");
     $("#terminal").append(message_array[3] + "\n");
@@ -38,6 +44,17 @@ function openSocket(){
         socketListener(socket);
         $("#connection_status").append("<h4 class=\"text-success\">Connected</h4>");
         logger("controller|-1|info|connected on " + host);
+
+
+        var iFrequency = 2000; // expressed in miliseconds
+        var myInterval = 0;
+
+        if(myInterval > 0) clearInterval(myInterval);  // stop
+        myInterval = setInterval( function checkRange(){
+            sendMessage(socket,"robot|-1|forward_range|get",true);
+
+        }, iFrequency );  // run
+
     } else {
         logger("controller|-1|info|invalid socket \(" + host + "\)" );
     }
@@ -60,29 +77,41 @@ function socketListener(socket){
             passKeyRelease(event.which,socket);
         }
 
-
         $("#left_button").click(function(){
-            logger("robot|-1|drivetrain|left");
             sendMessage(socket,"robot|-1|drivetrain|left",true);
         });
         $("#right_button").click(function(){
-            logger("robot|-1|drivetrain|right");
-            sendMessage(socket,"robot|-1|info|test message",true);
+            sendMessage(socket,"robot|-1|drivetrain|right",true);
         });
         $("#forward_button").click(function(){
-            logger("robot|-1|drivetrain|forward");
-            sendMessage(socket,"robot|-1|info|test message",true);
             sendMessage(socket,"robot|-1|drivetrain|forward",true);
-            sendMessage(socket,"robot|-1|forward_range|get",true);
         });
         $("#reverse_button").click(function(){
-            logger("robot|-1|drivetrain|reverse");
+            sendMessage(socket,"robot|-1|drivetrain|reverse",true);
         });
         $("#stop_button").click(function(){
-            logger("robot|-1|drivetrain|stop");
+            sendMessage(socket,"robot|-1|drivetrain|stop",true);
         });
+
+        $("#speed_0_button").click(function(){
+            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":0}",true);
+        });
+        $("#speed_1_button").click(function(){
+            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":1}",true);
+        });
+        $("#speed_2_button").click(function(){
+            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":2}",true);
+        });
+        $("#speed_3_button").click(function(){
+            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":3}",true);
+        });
+        $("#speed_4_button").click(function(){
+            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":4}",true);
+        });
+       
+         
         $("#flash_button").click(function(){
-            logger("robot|-1|attention_light|flash");
+            sendMessage(socket,"robot|-1|attention_light|flash",true);
         });
 
     }
@@ -101,6 +130,7 @@ function sendMessage(socket,message,allow_repeat){
     /* Send a message to the socket.  allow_repeat is a bool that says whether
      * we should pass the same message over and over. */
 
+    logger(message)
     if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
         socket.send(message);
         LAST_SENT_MESSAGE = message;
@@ -118,16 +148,11 @@ function recieveMessage(message) {
  
     var message_array = message.split("|");
 
-    if (message_array[0] != "controller" || message_array.length < 3){
-        logger("garbled message from dod (" + message + ")");
-        return null;
+    if (message_array[2] == "forward_range"){
+        var dist = 100*parseFloat(message_array[3]);
+        $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
     }
 
-    if (message_array[1] == "forward_range"){
-        recieveForwardRange(message_array[3]);
-    }
-
- 
 }   
 
 
@@ -143,8 +168,7 @@ function passKeyPress(key,socket){
             sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=true);
             break;
         case 37: // left
-            logger("left");
-            //sendMessage(socket,"robot|-1|drivetrain|left",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|left",allow_repeat=false);
             break;
         case 38: // up
             sendMessage(socket,"robot|-1|drivetrain|forward",allow_repeat=false);
@@ -162,8 +186,7 @@ function passKeyRelease(key,socket){
     
     switch(event.which) {
         case 37: // left
-            logger("left");
-            //sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
+            sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
             break;
         case 38: // up
             sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=false);
@@ -184,7 +207,10 @@ function passKeyRelease(key,socket){
 
 function recieveForwardRange(dist_string) {
 
-      var dist = parseFloat(dist_string);
+     var dist = parseFloat(dist_string);
+     $("#proximity").innerHTML = dist.toFixed(3);
+
+    /*
       if (dist < 0.25){
           if (too_close == 0){
               document.getElementById("proximity").style.color="red";
@@ -197,7 +223,8 @@ function recieveForwardRange(dist_string) {
           }
       }
       document.getElementById("proximity").innerHTML = dist.toFixed(3);
-  
+    */ 
+ 
     /*  
     } else {
       var p = document.createElement('p');
@@ -208,6 +235,7 @@ function recieveForwardRange(dist_string) {
 }
 
 function closeClient(){
+    $("#connection_status").html("<h4 class=\"text-success\">Disconnected</h4>");
     logger("controller|-1|info|connection closed.");    
 }
 
