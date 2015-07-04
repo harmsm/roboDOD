@@ -2,6 +2,8 @@
 
 var LAST_SENT_MESSAGE = '';
 var LAST_RECIEVED_MESSAGE = '';
+var LAST_SPEED_BUTTON = '';
+var LAST_STEER_BUTTON = '';
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
@@ -28,6 +30,27 @@ function logger(message){
 
 }
 
+
+// Make the function wait until the connection is made...
+function waitForSocketConnection(socket, callback){
+    setTimeout(
+        function () {
+            if (socket.readyState === 1) {
+                console.log("Connection is made")
+                if(callback != null){
+                    callback();
+                }
+                return;
+
+            } else {
+                console.log("wait for connection...")
+                waitForSocketConnection(socket, callback);
+            }
+
+        }, 5); // wait 5 milisecond for the connection...
+}
+
+
 function openSocket(){ 
 
     /* Open up the socket */
@@ -38,9 +61,14 @@ function openSocket(){
     url = url.replace(/\/+$/, "");
 
     var host = "ws://" + url + "/ws";
-    var socket = new WebSocket(host);
+    socket = new WebSocket(host);
 
     if(socket) {
+        // Initialize to stopped
+        triggerSetSpeed(0,socket);
+        triggerSetSteer("forward",socket);
+        triggerSetSteer("coast",socket);
+
         socketListener(socket);
         $("#connection_status").append("<h4 class=\"text-success\">Connected</h4>");
         logger("controller|-1|info|connected on " + host);
@@ -61,6 +89,29 @@ function openSocket(){
 
 }
 
+function updateButton(this_button,previous_button){
+
+    $(previous_button).addClass("btn-default");
+    $(previous_button).removeClass("btn-success");
+    
+    $(this_button).removeClass("btn-default");
+    $(this_button).addClass("btn-success");
+
+    return this_button;
+
+}
+
+function triggerSetSteer(steer){
+    LAST_STEER_BUTTON = updateButton("#" + steer + "_button",LAST_STEER_BUTTON);
+    sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
+}
+
+function triggerSetSpeed(speed,socket){
+    
+    LAST_SPEED_BUTTON = updateButton("#speed_" + speed + "_button",LAST_SPEED_BUTTON);
+    sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
+}
+
 function socketListener(socket){
 
     /* Listen for spew on the socket */
@@ -78,37 +129,36 @@ function socketListener(socket){
         }
 
         $("#left_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|left",true);
+            triggerSetSteer("left",socket);
         });
         $("#right_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|right",true);
+            triggerSetSteer("right",socket);
         });
         $("#forward_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|forward",true);
+            triggerSetSteer("forward",socket);
         });
         $("#reverse_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|reverse",true);
+            triggerSetSteer("reverse",socket);
         });
-        $("#stop_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|stop",true);
+        $("#coast_button").click(function(){
+            triggerSetSteer("coast",socket);
         });
 
         $("#speed_0_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":0}",true);
+            triggerSetSpeed(0,socket);
         });
         $("#speed_1_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":1}",true);
+            triggerSetSpeed(1,socket);
         });
         $("#speed_2_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":2}",true);
+            triggerSetSpeed(2,socket);
         });
         $("#speed_3_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":3}",true);
+            triggerSetSpeed(3,socket);
         });
         $("#speed_4_button").click(function(){
-            sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":4}",true);
+            triggerSetSpeed(4,socket);
         });
-       
          
         $("#flash_button").click(function(){
             sendMessage(socket,"robot|-1|attention_light|flash",true);
@@ -130,11 +180,15 @@ function sendMessage(socket,message,allow_repeat){
     /* Send a message to the socket.  allow_repeat is a bool that says whether
      * we should pass the same message over and over. */
 
-    logger(message)
-    if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
-        socket.send(message);
-        LAST_SENT_MESSAGE = message;
-    }
+    // Wait until the state of the socket is not ready and send the message when it is...
+    waitForSocketConnection(socket, function(){
+    
+        logger(message)
+        if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
+            socket.send(message);
+            LAST_SENT_MESSAGE = message;
+        }
+    });
 
 }
 
