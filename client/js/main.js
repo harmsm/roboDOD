@@ -1,9 +1,6 @@
-/* Global variables accessible across all functions.  */
-
-var LAST_SENT_MESSAGE = '';
-var LAST_RECIEVED_MESSAGE = '';
-var LAST_SPEED_BUTTON = '';
-var LAST_STEER_BUTTON = '';
+// ROBOT CONTROL CONSTANTS
+var RANGE_PROXIMITY_CUTOFF = 10;  // cm
+var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
@@ -11,18 +8,26 @@ var LAST_STEER_BUTTON = '';
 
 function logger(message){
 
+    /* Log commands in the terminal */
+
+    // Write to browser console in case all hell breaks loose
     console.log(message);
 
+    // Split the message
     var message_array = message.split("|");
 
+    // Is the message going out (sending) or coming in (recieving)?
     if (message_array[1] == "robot"){
         $("#terminal").append("Sending ");
     } else {
         $("#terminal").append("Recieving ");
     }
-        
+       
+    // Write message contents 
     $("#terminal").append(message_array[2] + ": ");
     $("#terminal").append(message_array[3] + "\n");
+
+    // Automatically scroll
     var term = $("#terminal");
     if (term.length){
         term.scrollTop(term[0].scrollHeight - term.height());
@@ -30,20 +35,23 @@ function logger(message){
 
 }
 
-
-// Make the function wait until the connection is made...
 function waitForSocketConnection(socket, callback){
+
+    /* Wrapper that forces a function to wait until the socket is connected. */
+    
     setTimeout(
         function () {
+
+            // If we're connected, run callback  
             if (socket.readyState === 1) {
-                console.log("Connection is made")
                 if(callback != null){
                     callback();
                 }
                 return;
 
+            // Otherwise, wait for 5 ms
             } else {
-                console.log("wait for connection...")
+                console.log("Waiting for connection...")
                 waitForSocketConnection(socket, callback);
             }
 
@@ -60,117 +68,36 @@ function openSocket(){
     url = url.replace(/index.html$/,"");
     url = url.replace(/\/+$/, "");
 
+    // Start up socket.
     var host = "ws://" + url + "/ws";
     socket = new WebSocket(host);
 
+    // If we connect ...
     if(socket) {
-        // Initialize to stopped
-        triggerSetSpeed(0,socket);
-        triggerSetSteer("forward",socket);
-        triggerSetSteer("coast",socket);
 
+        // Initialize robot to stopped, zero speed.
+        setSpeed(0,socket);
+        setSteer("forward",socket);
+        setSteer("coast",socket);
+
+        // Activate user-interface listener
         socketListener(socket);
-        $("#connection_status").append("<h4 class=\"text-success\">Connected</h4>");
+
+        // Indicate that connection has been made.
+        $("#connection_status").html("Connected");
+        $("#connection_status").toggleClass("text-success",true);
         logger("controller|-1|info|connected on " + host);
 
-
-        var iFrequency = 2000; // expressed in miliseconds
+        // Start measuring ranges
         var myInterval = 0;
-
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
             sendMessage(socket,"robot|-1|forward_range|get",true);
+        }, RANGE_CHECK_FREQUENCY );  // run
 
-        }, iFrequency );  // run
-
+    // Or complain...
     } else {
         logger("controller|-1|info|invalid socket \(" + host + "\)" );
-    }
-
-}
-
-function updateButton(this_button,previous_button){
-
-    $(previous_button).addClass("btn-default");
-    $(previous_button).removeClass("btn-success");
-    
-    $(this_button).removeClass("btn-default");
-    $(this_button).addClass("btn-success");
-
-    return this_button;
-
-}
-
-function triggerSetSteer(steer){
-    LAST_STEER_BUTTON = updateButton("#" + steer + "_button",LAST_STEER_BUTTON);
-    sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
-}
-
-function triggerSetSpeed(speed,socket){
-    
-    LAST_SPEED_BUTTON = updateButton("#speed_" + speed + "_button",LAST_SPEED_BUTTON);
-    sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
-}
-
-function socketListener(socket){
-
-    /* Listen for spew on the socket */
-
-    socket.onopen = function() {
-
-        // Key pressed
-        document.onkeydown = function KeyCheck(event) {
-            passKeyPress(event.which,socket);
-        }
-
-        // key released
-        document.onkeyup = function KeyCheck(event) {
-            passKeyRelease(event.which,socket);
-        }
-
-        $("#left_button").click(function(){
-            triggerSetSteer("left",socket);
-        });
-        $("#right_button").click(function(){
-            triggerSetSteer("right",socket);
-        });
-        $("#forward_button").click(function(){
-            triggerSetSteer("forward",socket);
-        });
-        $("#reverse_button").click(function(){
-            triggerSetSteer("reverse",socket);
-        });
-        $("#coast_button").click(function(){
-            triggerSetSteer("coast",socket);
-        });
-
-        $("#speed_0_button").click(function(){
-            triggerSetSpeed(0,socket);
-        });
-        $("#speed_1_button").click(function(){
-            triggerSetSpeed(1,socket);
-        });
-        $("#speed_2_button").click(function(){
-            triggerSetSpeed(2,socket);
-        });
-        $("#speed_3_button").click(function(){
-            triggerSetSpeed(3,socket);
-        });
-        $("#speed_4_button").click(function(){
-            triggerSetSpeed(4,socket);
-        });
-         
-        $("#flash_button").click(function(){
-            sendMessage(socket,"robot|-1|attention_light|flash",true);
-        });
-
-    }
-
-    socket.onmessage = function(msg) {
-        recieveMessage(msg.data);
-    }
-    socket.onclose = function() {
-        closeClient();
     }
 
 }
@@ -184,9 +111,9 @@ function sendMessage(socket,message,allow_repeat){
     waitForSocketConnection(socket, function(){
     
         logger(message)
-        if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
+        if (($("#last-sent-message").html() != message) || (allow_repeat == true)){
             socket.send(message);
-            LAST_SENT_MESSAGE = message;
+            $("#last-sent-message").html(message);
         }
     });
 
@@ -196,19 +123,171 @@ function recieveMessage(message) {
 
     /* Recieve a message */ 
 
-    LAST_RECIEVED_MESSAGE = message;
+    $("#last-recieved-message").html(message);
 
     logger(message);
  
     var message_array = message.split("|");
 
     if (message_array[2] == "forward_range"){
-        var dist = 100*parseFloat(message_array[3]);
-        $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
+        parseDistanceMessage(message_array);
     }
 
 }   
 
+function closeClient(){
+    $("#connection_status").html("Disconnected");
+    $("#connection_status").toggleClass("text-success",false);
+    logger("controller|-1|info|connection closed.");    
+}
+
+/* ------------------------------------------------------------------------- */
+/* More specifically robot-y function */
+/* ------------------------------------------------------------------------- */
+
+function parseDistanceMessage(message_array){
+
+    /* Deal with distance information spewed by robot */
+
+    // Update user interface
+    var dist = 100*parseFloat(message_array[3]);
+    $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
+
+    // Deal with distance cutoff.  If we're within 2x cutoff...
+    if (dist < 2*RANGE_PROXIMITY_CUTOFF){
+       
+        // If we're within actual cutoff, stop the robot from moving forward 
+        if (dist < RANGE_PROXIMITY_CUTOFF){
+            $("#forward_range").toggleClass("range-too-close",true);
+            $("#forward_range").toggleClass("range-warning",false);
+
+            if ($("#steer_forward_button").hasClass("btn-current-steer")){
+                logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+                setSteer("coast");
+            }
+
+        // If we're not actually within cutoff yet, warn with color
+        } else { 
+            $("#forward_range").toggleClass("range-too-close",false);
+            $("#forward_range").toggleClass("range-warning",true);
+        }
+
+    // Otherwise, we're still cool
+    } else {
+        $("#forward_range").toggleClass("range-too-close",false);
+        $("#forward_range").toggleClass("range-warning",false);
+    }
+
+}
+
+function setSteer(steer){
+
+    /* Set the current steering for the robot */
+    
+    // If we're trying to go forward, check for distance
+    if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
+        logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+        steer = "coast";
+    }
+
+    // Update user interface
+    $(".btn-current-steer").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-steer",false);
+    $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
+
+    // Tell the robot what to do
+    sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
+
+}
+
+function setSpeed(speed,socket){
+
+    /* Set the current speed for the robot */
+
+    // Update user interface
+    $(".btn-current-speed").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-speed",false);
+    $("#speed_" + speed + "_button").toggleClass("btn-current-speed",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
+
+    // Tell the robot what to do.
+    sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
+
+}
+
+function socketListener(socket){
+
+    /* Listen for user interaction with the interface and send down the socket */
+
+    socket.onopen = function() {
+
+        // Key pressed
+        document.onkeydown = function KeyCheck(event) {
+            passKeyPress(event.which,socket);
+        }
+
+        // key released
+        document.onkeyup = function KeyCheck(event) {
+            passKeyRelease(event.which,socket);
+        }
+
+        /* Steering */
+        $("#steer_left_button").click(function(){
+            setSteer("left",socket);
+        });
+        $("#steer_right_button").click(function(){
+            setSteer("right",socket);
+        });
+        $("#steer_forward_button").click(function(){
+            setSteer("forward",socket);
+        });
+        $("#steer_reverse_button").click(function(){
+            setSteer("reverse",socket);
+        });
+        $("#steer_coast_button").click(function(){
+            setSteer("coast",socket);
+        });
+   
+        /* Speed */
+        $("#speed_0_button").click(function(){
+            setSpeed(0,socket);
+        });
+        $("#speed_1_button").click(function(){
+            setSpeed(1,socket);
+        });
+        $("#speed_2_button").click(function(){
+            setSpeed(2,socket);
+        });
+        $("#speed_3_button").click(function(){
+            setSpeed(3,socket);
+        });
+        $("#speed_4_button").click(function(){
+            setSpeed(4,socket);
+        });
+        
+        /* Flash button */ 
+        $("#flash_button").click(function(){
+            sendMessage(socket,"robot|-1|attention_light|flash",true);
+        });
+
+    }
+
+    /* Listen for data coming down the socket */
+    socket.onmessage = function(msg) {
+        recieveMessage(msg.data);
+    }
+
+    /* Close the socket */
+    socket.onclose = function() {
+        closeClient();
+    }
+
+}
 
 /* ------------------------------------------------------------------------- */
 /* Pass messages from client to DOD */
@@ -217,141 +296,66 @@ function recieveMessage(message) {
 function passKeyPress(key,socket){
 
     switch(event.which) {
+        
+        /* Steer the bot */
         case 16: // esc
-            sendMessage(socket,"robot|-1|drivetrain|stop",allow_repeat=true);
-            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=true);
+            setSteer("coast",socket);
             break;
         case 37: // left
-            sendMessage(socket,"robot|-1|drivetrain|left",allow_repeat=false);
+            setSteer("left",socket);
             break;
         case 38: // up
-            sendMessage(socket,"robot|-1|drivetrain|forward",allow_repeat=false);
+            setSteer("forward",socket);
             break;
         case 39: // right
-            sendMessage(socket,"robot|-1|drivetrain|right",allow_repeat=false);
+            setSteer("right",socket);
             break;
         case 40: // down
-            sendMessage(socket,"robot|-1|drivetrain|reverse",allow_repeat=false);
+            setSteer("reverse",socket);
+            break;
+
+        /* Set the speed of the bot */
+
+        case 48: // set speed to 0
+            setSpeed(0,socket);
+            break;
+        case 49: // set speed to 1
+            setSpeed(1,socket);
+            break;
+        case 50: // set speed to 2 
+            setSpeed(2,socket);
+            break;
+        case 51: // set speed to 3
+            setSpeed(3,socket);
+            break;
+        case 52: // set speed to 4
+            setSpeed(4,socket);
             break;
     }
 }
 
 function passKeyRelease(key,socket){
-    
+   
+    /* This makes it so that keyboard control requires the key to be held down.
+       If the steering buttons are release, the motion will stop. */
+ 
     switch(event.which) {
         case 37: // left
-            sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
+            setSteer("coast",socket);
             break;
         case 38: // up
-            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=false);
+            setSteer("coast",socket);
             break;
         case 39: // right
-            sendMessage(socket,"robot|-1|drivetrain|center",allow_repeat=false);
+            setSteer("coast",socket);
             break;
         case 40: // down
-            sendMessage(socket,"robot|-1|drivetrain|coast",allow_repeat=false);
+            setSteer("coast",socket);
             break;
     }
 
 }
 
-/* ------------------------------------------------------------------------- */
-/* Pass messages from DOD to client */
-/* ------------------------------------------------------------------------- */
-
-function recieveForwardRange(dist_string) {
-
-     var dist = parseFloat(dist_string);
-     $("#proximity").innerHTML = dist.toFixed(3);
-
-    /*
-      if (dist < 0.25){
-          if (too_close == 0){
-              document.getElementById("proximity").style.color="red";
-              too_close = 1;
-          }
-      } else {
-          if (too_close == 1){
-              document.getElementById("proximity").style.color="black";
-              too_close = 0;
-          }
-      }
-      document.getElementById("proximity").innerHTML = dist.toFixed(3);
-    */ 
- 
-    /*  
-    } else {
-      var p = document.createElement('p');
-      p.innerHTML = txt;
-      document.getElementById('output').appendChild(p);
-    }*/
-
-}
-
-function closeClient(){
-    $("#connection_status").html("<h4 class=\"text-success\">Disconnected</h4>");
-    logger("controller|-1|info|connection closed.");    
-}
-
-function populateMap( ) { 
-
-    // Script for updating moving map.  Currently hacked to generate random
-    // values for the density at each point in the grid.
-
-    RGBToHex = function(r,g,b){
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    }
-
-    // HACK
-    var density = 0.5;    
- 
-    var i = 0; 
-    var j = 0;
-    var x = 0;
-    var y = 0;
-    var mainMatrix = Array(200);
-    for (i = 0; i < 200; i++){
-        mainMatrix[i] = Array(200);
-    } 
-
-    // Initialize drawing area
-    var c = document.getElementById("moving_map");
-    var ctx = c.getContext("2d");
-    ctx.clearRect(0, 0, ctx.width, ctx.height);
-    ctx.fillStyle = "#FF0000";
-
-    // Update the display every 500 ms.
-    var nIntervId = setInterval(updateDrawing,500);
-   
-    function updateDrawing(){
-
-        // Update the matrix
-        for (i = 0; i < 200; i++){
-            for (j = 0; j < 200; j++){
-                if (Math.random() < density){
-                    mainMatrix[i][j] = 255 - Math.floor(Math.random()*255);
-                } else { 
-                    mainMatrix[i][j] = 255;
-                }
-            }
-        }
-      
-        // Update the display 
-        ctx.clearRect(0, 0, 800, 800);  //ctx.width, ctx.height);
-        for (i = 0; i < 200; i++){
-            for (j = 0; j < 200; j++){
-                ctx.fillStyle=RGBToHex(255,mainMatrix[i][j],mainMatrix[i][j]);
-                ctx.fillRect(i*4,j*4,4,4);
-            }
-        }
-
-        // Draw the robot on the display
-        var robot_icon = new Image();
-        robot_icon.src = "img/robot-icon.png";
-        ctx.drawImage(robot_icon,400,400) 
-    }
-
-}
-
+/* Let 'er rip */
 openSocket();
 

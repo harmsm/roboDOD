@@ -14,8 +14,21 @@
     border-radius: 8px;
 }
 
-
 .terminal {
     max-height:375px;
 }
 
+.range-warning {
+    color: DarkOrange;
+}
+
+.range-too-close { 
+    color: Red;
+}
+
+.btn-current-steer { }
+.btn-current-speed { }
+
+.message-storage {
+    visibility: hidden;
+}
