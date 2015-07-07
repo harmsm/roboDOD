@@ -30,27 +30,6 @@ function logger(message){
 
 }
 
-
-// Make the function wait until the connection is made...
-function waitForSocketConnection(socket, callback){
-    setTimeout(
-        function () {
-            if (socket.readyState === 1) {
-                console.log("Connection is made")
-                if(callback != null){
-                    callback();
-                }
-                return;
-
-            } else {
-                console.log("wait for connection...")
-                waitForSocketConnection(socket, callback);
-            }
-
-        }, 5); // wait 5 milisecond for the connection...
-}
-
-
 function openSocket(){ 
 
     /* Open up the socket */
@@ -65,6 +44,7 @@ function openSocket(){
 
     if(socket) {
         // Initialize to stopped
+
         triggerSetSpeed(0,socket);
         triggerSetSteer("forward",socket);
         triggerSetSteer("coast",socket);
@@ -175,6 +155,25 @@ function socketListener(socket){
 
 }
 
+// Make the function wait until the connection is made...
+function waitForSocketConnection(socket, callback){
+    setTimeout(
+        function () {
+            if (socket.readyState === 1) {
+                console.log("Connection is made")
+                if(callback != null){
+                    callback();
+                }
+                return;
+
+            } else {
+                console.log("wait for connection...")
+                waitForSocketConnection(socket, callback);
+            }
+
+        }, 5); // wait 5 milisecond for the connection...
+}
+
 function sendMessage(socket,message,allow_repeat){
 
     /* Send a message to the socket.  allow_repeat is a bool that says whether
@@ -209,6 +208,10 @@ function recieveMessage(message) {
 
 }   
 
+function closeClient(){
+    $("#connection_status").html("<h4 class=\"text-success\">Disconnected</h4>");
+    logger("controller|-1|info|connection closed.");    
+}
 
 /* ------------------------------------------------------------------------- */
 /* Pass messages from client to DOD */
@@ -259,39 +262,6 @@ function passKeyRelease(key,socket){
 /* Pass messages from DOD to client */
 /* ------------------------------------------------------------------------- */
 
-function recieveForwardRange(dist_string) {
-
-     var dist = parseFloat(dist_string);
-     $("#proximity").innerHTML = dist.toFixed(3);
-
-    /*
-      if (dist < 0.25){
-          if (too_close == 0){
-              document.getElementById("proximity").style.color="red";
-              too_close = 1;
-          }
-      } else {
-          if (too_close == 1){
-              document.getElementById("proximity").style.color="black";
-              too_close = 0;
-          }
-      }
-      document.getElementById("proximity").innerHTML = dist.toFixed(3);
-    */ 
- 
-    /*  
-    } else {
-      var p = document.createElement('p');
-      p.innerHTML = txt;
-      document.getElementById('output').appendChild(p);
-    }*/
-
-}
-
-function closeClient(){
-    $("#connection_status").html("<h4 class=\"text-success\">Disconnected</h4>");
-    logger("controller|-1|info|connection closed.");    
-}
 
 function populateMap( ) { 
 
