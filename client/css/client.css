@@ -26,8 +26,8 @@
     color: Red;
 }
 
-.btn-current-steer btn-success { }
-.btn-current-speed btn-success { }
+.btn-current-steer { }
+.btn-current-speed { }
 
 .message-storage {
     visibility: hidden;

@@ -44,7 +44,6 @@ function waitForSocketConnection(socket, callback){
 
             // If we're connected, run callback  
             if (socket.readyState === 1) {
-                console.log("Connection is made")
                 if(callback != null){
                     callback();
                 }
@@ -162,7 +161,7 @@ function parseDistanceMessage(message_array){
             $("#forward_range").toggleClass("range-too-close",true);
             $("#forward_range").toggleClass("range-warning",false);
 
-            if ($("#forward_button").hasClass("btn-current-steer")){
+            if ($("#steer_forward_button").hasClass("btn-current-steer")){
                 logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
                 setSteer("coast");
             }
@@ -174,7 +173,7 @@ function parseDistanceMessage(message_array){
         }
 
     // Otherwise, we're still cool
-    } else (dist){
+    } else {
         $("#forward_range").toggleClass("range-too-close",false);
         $("#forward_range").toggleClass("range-warning",false);
     }
@@ -184,10 +183,20 @@ function parseDistanceMessage(message_array){
 function setSteer(steer){
 
     /* Set the current steering for the robot */
+    
+    // If we're trying to go forward, check for distance
+    if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
+        logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+        steer = "coast";
+    }
 
     // Update user interface
-    $(".btn-current-steer").toggleClass("btn-current-steer");
-    $("#steer_" + steer + "_button").toggleClass("btn-current-steer");
+    $(".btn-current-steer").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-steer",false);
+    $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
 
     // Tell the robot what to do
     sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
@@ -198,15 +207,13 @@ function setSpeed(speed,socket){
 
     /* Set the current speed for the robot */
 
-    // If we're trying to go forward, check for distance
-    if ((speed == "forward") && ($("#forward_range").hasClass("range-too-close"))){
-        logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
-        speed = "coast";
-    }
-
     // Update user interface
-    $(".btn-current-speed").toggleClass("btn-current-speed");
-    $("#speed_" + speed + "_button").toggleClass("btn-current-speed");
+    $(".btn-current-speed").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-speed",false);
+    $("#speed_" + speed + "_button").toggleClass("btn-current-speed",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
 
     // Tell the robot what to do.
     sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
@@ -230,19 +237,19 @@ function socketListener(socket){
         }
 
         /* Steering */
-        $("#left_button").click(function(){
+        $("#steer_left_button").click(function(){
             setSteer("left",socket);
         });
-        $("#right_button").click(function(){
+        $("#steer_right_button").click(function(){
             setSteer("right",socket);
         });
-        $("#forward_button").click(function(){
+        $("#steer_forward_button").click(function(){
             setSteer("forward",socket);
         });
-        $("#reverse_button").click(function(){
+        $("#steer_reverse_button").click(function(){
             setSteer("reverse",socket);
         });
-        $("#coast_button").click(function(){
+        $("#steer_coast_button").click(function(){
             setSteer("coast",socket);
         });
    
@@ -280,46 +287,6 @@ function socketListener(socket){
         closeClient();
     }
 
-}
-
-
-function sendMessage(socket,message,allow_repeat){
-
-    /* Send a message to the socket.  allow_repeat is a bool that says whether
-     * we should pass the same message over and over. */
-
-    // Wait until the state of the socket is not ready and send the message when it is...
-    waitForSocketConnection(socket, function(){
-    
-        logger(message)
-        if ((LAST_SENT_MESSAGE != message) || (allow_repeat == true)){
-            socket.send(message);
-            LAST_SENT_MESSAGE = message;
-        }
-    });
-
-}
-
-function recieveMessage(message) {
-
-    /* Recieve a message */ 
-
-    LAST_RECIEVED_MESSAGE = message;
-
-    logger(message);
- 
-    var message_array = message.split("|");
-
-    if (message_array[2] == "forward_range"){
-        var dist = 100*parseFloat(message_array[3]);
-        $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
-    }
-
-}   
-
-function closeClient(){
-    $("#connection_status").html("<h4 class=\"text-success\">Disconnected</h4>");
-    logger("controller|-1|info|connection closed.");    
 }
 
 /* ------------------------------------------------------------------------- */
