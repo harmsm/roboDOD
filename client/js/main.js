@@ -131,6 +131,8 @@ function recieveMessage(message) {
 
     if (message_array[2] == "forward_range"){
         parseDistanceMessage(message_array);
+    } else if (message_array[2] == "drivetrain"){
+        parseDrivetrainMessage(message_array);
     }
 
 }   
@@ -180,6 +182,25 @@ function parseDistanceMessage(message_array){
 
 }
 
+function parseDrivetrainMessage(message_array){
+
+    // Update user interface
+    $(".btn-current-steer").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-steer",false);
+    $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
+
+    // Update user interface
+    $(".btn-current-speed").toggleClass("btn-default",true)
+                           .toggleClass("btn-success",false)
+                           .toggleClass("btn-current-speed",false);
+    $("#speed_" + speed + "_button").toggleClass("btn-current-speed",true)
+                                    .toggleClass("btn-success",true)
+                                    .toggleClass("btn-default",false);
+}
+
 function setSteer(steer){
 
     /* Set the current steering for the robot */
@@ -190,14 +211,6 @@ function setSteer(steer){
         steer = "coast";
     }
 
-    // Update user interface
-    $(".btn-current-steer").toggleClass("btn-default",true)
-                           .toggleClass("btn-success",false)
-                           .toggleClass("btn-current-steer",false);
-    $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
-                                    .toggleClass("btn-success",true)
-                                    .toggleClass("btn-default",false);
-
     // Tell the robot what to do
     sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
 
@@ -207,13 +220,6 @@ function setSpeed(speed,socket){
 
     /* Set the current speed for the robot */
 
-    // Update user interface
-    $(".btn-current-speed").toggleClass("btn-default",true)
-                           .toggleClass("btn-success",false)
-                           .toggleClass("btn-current-speed",false);
-    $("#speed_" + speed + "_button").toggleClass("btn-current-speed",true)
-                                    .toggleClass("btn-success",true)
-                                    .toggleClass("btn-default",false);
 
     // Tell the robot what to do.
     sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);

@@ -47,7 +47,7 @@ class RobotDevice:
         self.control_dict = {}
         self.manager = None
 
-        self.message = None
+        self.messages = []
 
     def connectToManager(self,manager):
         """
@@ -71,19 +71,20 @@ class RobotDevice:
 
     def getData(self):
         """
-        Function to poll this piece of hardware for new data to pass to the 
+        Function to poll this piece of hardware for new messages to pass to the 
         manager.
         """
 
-        if self.message:
-            m = self.message
-            self.message = None
+        # If the list of messages is not empty
+        if len(self.messages) > 0:
+            m = self.messages[:]
+            self.messages = []
 
             return m
 
-        return None
+        return []
 
-    def sendData(self,message):
+    def sendData(message):
         """
         Send a commmand to the device. 
         """
@@ -106,10 +107,19 @@ class RobotDevice:
             else:
                 self.control_dict[function_call]()
 
+            # Send the message we just processed back to the controller.
+            self.messages.append(RobotMessage(destination="controller",
+                                              device_name=self.name,
+                                              message=message))
+
         # command not recognized
         except KeyError:
             err = "Command (%s) not found for %s." % (command,self.__class__.__name__)
             raise RobotDeviceError("robot|-1|error|%s" % err)
+
+            #self.messages.append(RobotMessage(destination="controller",
+            #                                  device_name=self.name,
+            #                                  message=message))
    
     def getNow(self,command):
         """
@@ -142,7 +152,7 @@ class InfoDevice(RobotDevice):
 
         self.control_dict = {}
         self.manager = None
-        self.message = None
+        self.messages = []
 
     def sendData(self,command):
         """
@@ -150,9 +160,9 @@ class InfoDevice(RobotDevice):
         device manager.
         """
 
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message=("robot recieved %s" % command))
+        self.messages.append(RobotMessage(destination="controller",
+                                          self.name,
+                                          message=command))
 
 class GPIOMotor(RobotDevice):
     """
@@ -280,42 +290,26 @@ class TwoMotorCatSteer(RobotDevice):
         self.left_motor.forward()
         self.right_motor.forward()
 
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message="Going forward")
-        
     def driveReverse(self):
 
         self.left_motor.reverse()
         self.right_motor.reverse()
         
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message="Going backward")
-
     def steerLeft(self):
         
         self.left_motor.reverse()
         self.right_motor.forward()
-
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message="Turning left")
 
     def steerRight(self):
        
         self.left_motor.forward() 
         self.right_motor.reverse()
         
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message="Turning right")
-
     def motorStop(self):
 
         self.left_motor.stop()
         self.right_motor.stop()
-
+        
     def motorCoast(self):
 
         self.left_motor.coast()
@@ -334,9 +328,6 @@ class TwoMotorCatSteer(RobotDevice):
         self.left_motor.setPWMDutyCycle(speed*25)
         self.right_motor.setPWMDutyCycle(speed*25)
                      
-        self.message = RobotMessage(destination="controller",
-                                    device_name="info",
-                                    message="Setting speed to %i" % self.speed)
 
 class LEDIndicatorLight(RobotDevice):
     """
@@ -368,27 +359,24 @@ class LEDIndicatorLight(RobotDevice):
         self.led.on()
 
         # Allows the client to turn on the LED for a fixed number of
-        # seconds by adding a "turn off" message to the output queue
-        self.message = RobotMessage(destination="robot",
-                                    delay_time=seconds_to_flash,
-                                    device_name=self.name,
-                                    message="off")
+        # seconds by adding a "turn off" message to the output queue.  This is
+        # basically a "note to self: turn of the LED after delay time seconds"
+        self.messages.append(RobotMessage(destination="robot",
+                                          delay_time=seconds_to_flash,
+                                          device_name=self.name,
+                                          message="off"))
        
     def turnOn(self):
         """
         """
 
         self.led.on()
-        self.message = RobotMessage(destination="info",device_name=self.name,
-                                    message="LED should now be on.")
     
     def turnOff(self):
         """
         """
 
         self.led.off()
-        self.message = RobotMessage(destination="info",device_name=self.name,
-                                    message="LED should now be off.")
  
     def shutDown(self):
         """
@@ -412,8 +400,7 @@ class RangeFinder(RobotDevice):
         self.range_finder = gpio.UltrasonicRange(trigger_pin,echo_pin,timeout)
         self.control_dict = {"get":self.getRange}
         self.range_value = -10.0
-        self.message = None
-
+        self.messages = []
 
     def getRange(self):
         """
@@ -421,9 +408,9 @@ class RangeFinder(RobotDevice):
         """
 
         self.range_value = self.range_finder.getRange()
-        self.message = RobotMessage(destination="controller",
-                                    device_name=self.name,
-                                    message="%.12f" % self.range_value)
+        self.messages.append(RobotMessage(destination="controller",
+                                          device_name=self.name,
+                                          message="%.12f" % self.range_value))
 
     def getNow(self):
         """
@@ -476,9 +463,9 @@ class Accelerometer(RobotDevice):
         """
 
         v = self.getNow()
-        self.message = RobotMessage(destination="controller",
-                                    device_name=self.name,
-                                    message="%.10e," % self.state_vector)
+        self.messages.append(RobotMessage(destination="controller",
+                                          device_name=self.name,
+                                          message="%.10e," % self.state_vector))
 
 
     def getNow(self):
