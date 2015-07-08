@@ -1,12 +1,13 @@
 // ROBOT CONTROL CONSTANTS
 var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
+var LOG_LEVEL = 1;
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
 /* ------------------------------------------------------------------------- */
 
-function logger(message){
+function terminalLogger(message){
 
     /* Log commands in the terminal */
 
@@ -16,16 +17,25 @@ function logger(message){
     // Split the message
     var message_array = message.split("|");
 
-    // Is the message going out (sending) or coming in (recieving)?
-    if (message_array[1] == "robot"){
-        $("#terminal").append("Sending ");
-    } else {
-        $("#terminal").append("Recieving ");
+    // If we're not logging *everything* don't log drivetrain and distance stuff.
+    if (LOG_LEVEL < 2){
+        if (['drivetrain', 'forward_range'].indexOf(message_array[2]) >= 0) {
+            return;
+        }
     }
-       
+
+    // Is the message going to robot, to the contoller, or a warning?
+    if (message_array[0] == "robot"){
+        $("#terminal").append("<span   class=\"to-robot-msg\"><b>You    </b>:");
+    } else if (message_array[0] == "controller"){
+        $("#terminal").append("<span class=\"from-robot-msg\"><b>Robot  </b>: ");
+    } else if (message_array[0] == "warn"){
+        $("#terminal").append("<span       class=\"warn-msg\"><b>Warning</b>: ");
+    }
+
     // Write message contents 
     $("#terminal").append(message_array[2] + ": ");
-    $("#terminal").append(message_array[3] + "\n");
+    $("#terminal").append(message_array[3] + "</span>\n");
 
     // Automatically scroll
     var term = $("#terminal");
@@ -86,7 +96,7 @@ function openSocket(){
         // Indicate that connection has been made.
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        logger("controller|-1|info|connected on " + host);
+        terminalLogger("controller|-1|info|connected to " + host);
 
         // Start measuring ranges
         var myInterval = 0;
@@ -97,8 +107,19 @@ function openSocket(){
 
     // Or complain...
     } else {
-        logger("controller|-1|info|invalid socket \(" + host + "\)" );
+        terminalLogger("warn|-1|info|invalid socket \(" + host + "\)" );
     }
+
+}
+
+function constructMessage(destination,delay,device,message){
+    
+    destination = typeof destination !== 'undefined' ? destination : "robot";     
+    delay = typeof delay !== 'undefined' ? delay : "-1";     
+    device = typeof device !== 'undefined' ? device : "info";     
+    message = typeof message !== 'undefined' ? message : "empty message";     
+
+    return destination + "|" + delay + "|" device + "|" + message
 
 }
 
@@ -109,10 +130,14 @@ function sendMessage(socket,message,allow_repeat){
 
     // Wait until the state of the socket is not ready and send the message when it is...
     waitForSocketConnection(socket, function(){
-    
-        logger(message)
+
+        // Log the message to the terminal    
+        terminalLogger(message);
+
         if (($("#last-sent-message").html() != message) || (allow_repeat == true)){
             socket.send(message);
+
+            // update the last message sent
             $("#last-sent-message").html(message);
         }
     });
@@ -123,10 +148,13 @@ function recieveMessage(message) {
 
     /* Recieve a message */ 
 
+    // update the last message recieved
     $("#last-recieved-message").html(message);
 
-    logger(message);
- 
+    // Log the message to the terminal
+    terminalLogger(message);
+
+    // parse the message 
     var message_array = message.split("|");
 
     if (message_array[2] == "forward_range"){
@@ -140,11 +168,11 @@ function recieveMessage(message) {
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    logger("controller|-1|info|connection closed.");    
+    terminalLogger("controller|-1|info|connection closed.");    
 }
 
 /* ------------------------------------------------------------------------- */
-/* More specifically robot-y function */
+/* Recieve data from the robot */
 /* ------------------------------------------------------------------------- */
 
 function parseDistanceMessage(message_array){
@@ -164,7 +192,7 @@ function parseDistanceMessage(message_array){
             $("#forward_range").toggleClass("range-warning",false);
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
-                logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+                terminalLogger("warn|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
                 setSteer("coast");
             }
 
@@ -184,22 +212,35 @@ function parseDistanceMessage(message_array){
 
 function parseDrivetrainMessage(message_array){
 
-    // Update user interface
-    $(".btn-current-steer").toggleClass("btn-default",true)
-                           .toggleClass("btn-success",false)
-                           .toggleClass("btn-current-steer",false);
-    $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
-                                    .toggleClass("btn-success",true)
-                                    .toggleClass("btn-default",false);
+    if (message_array[3] == "setspeed"){
 
-    // Update user interface
-    $(".btn-current-speed").toggleClass("btn-default",true)
-                           .toggleClass("btn-success",false)
-                           .toggleClass("btn-current-speed",false);
-    $("#speed_" + speed + "_button").toggleClass("btn-current-speed",true)
-                                    .toggleClass("btn-success",true)
-                                    .toggleClass("btn-default",false);
+        var current_speed = message_array[4].split(":")[1].split("}")[0];
+
+        // Update user interface
+        $(".btn-current-speed").toggleClass("btn-default",true)
+                               .toggleClass("btn-success",false)
+                               .toggleClass("btn-current-speed",false);
+        $("#speed_" + current_speed + "_button").toggleClass("btn-current-speed",true)
+                                                .toggleClass("btn-success",true)
+                                                .toggleClass("btn-default",false);
+    } else { 
+    
+        var steer = message_array[3];
+
+        // Update user interface
+        $(".btn-current-steer").toggleClass("btn-default",true)
+                               .toggleClass("btn-success",false)
+                               .toggleClass("btn-current-steer",false);
+        $("#steer_" + steer + "_button").toggleClass("btn-current-steer",true)
+                                        .toggleClass("btn-success",true)
+                                        .toggleClass("btn-default",false);
+    }
+
 }
+
+/* ------------------------------------------------------------------------- */
+/* Send data to the robot */
+/* ------------------------------------------------------------------------- */
 
 function setSteer(steer){
 
@@ -207,7 +248,7 @@ function setSteer(steer){
     
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
-        logger("controller|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+        terminalLogger("warn|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
         steer = "coast";
     }
 
@@ -220,11 +261,14 @@ function setSpeed(speed,socket){
 
     /* Set the current speed for the robot */
 
-
     // Tell the robot what to do.
     sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
 
 }
+
+/* ------------------------------------------------------------------------- */
+/* Deal with user clicks, key presses, key releases, etc.
+/* ------------------------------------------------------------------------- */
 
 function socketListener(socket){
 
@@ -294,10 +338,6 @@ function socketListener(socket){
     }
 
 }
-
-/* ------------------------------------------------------------------------- */
-/* Pass messages from client to DOD */
-/* ------------------------------------------------------------------------- */
 
 function passKeyPress(key,socket){
 
