@@ -29,13 +29,13 @@ function terminalLogger(message){
 
     // Is the message going to robot, to the contoller, or a warning?
     if (message_array[0] == "robot"){
-        identifier = "You    : ";
+        identifier = "You: ";
         this_class = "to-robot-msg";
     } else if (message_array[0] == "warn"){
         identifier = "Warning: ";
         this_class = "warn-msg";
     } else {
-        identifier = "Robot  : ";
+        identifier = "Robot: ";
         this_class = "from-robot-msg";
     }
 
@@ -174,6 +174,8 @@ function recieveMessage(message) {
         parseDistanceMessage(message_array);
     } else if (message_array[2] == "drivetrain"){
         parseDrivetrainMessage(message_array);
+    } else if (message_array[2] == "attention_light"){
+        parseAttentionLightMessage(message_array);
     }
 
 }   
@@ -256,6 +258,20 @@ function parseDrivetrainMessage(message_array){
 
 }
 
+function parseAttentionLightMessage(message_array){
+
+    if (message_array[3] == "flash" || message_array[3] == "on"){
+        $("#attention_light_button").toggleClass("btn-success",true);
+        $("#attention_light_button").toggleClass("btn-default",false);
+        $("#attention_light_button").toggleClass("attention-light-active",true);
+    } else if (message_array[3] == "off") {
+        $("#attention_light_button").toggleClass("btn-success",false);
+        $("#attention_light_button").toggleClass("btn-default",true);
+        $("#attention_light_button").toggleClass("attention-light-active",false);
+    }
+
+}
+
 /* ------------------------------------------------------------------------- */
 /* Send data to the robot */
 /* ------------------------------------------------------------------------- */
@@ -281,6 +297,16 @@ function setSpeed(speed,socket){
 
     // Tell the robot what to do.
     sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
+
+}
+
+function setAttentionLight(socket){
+
+    if ($("#attention_light_button").hasClass("attention-light-active")){
+        sendMessage(socket,"robot|-1|attention_light|off",true);
+    } else {
+        sendMessage(socket,"robot|-1|attention_light|flash",true);
+    }
 
 }
 
@@ -339,8 +365,8 @@ function socketListener(socket){
         });
         
         /* Flash button */ 
-        $("#flash_button").click(function(){
-            sendMessage(socket,"robot|-1|attention_light|flash",true);
+        $("#attention_light_button").click(function(){
+            setAttentionLight(socket);
         });
 
     }
