@@ -84,7 +84,7 @@ class RobotDevice:
 
         return []
 
-    def sendData(message):
+    def sendData(self,message):
         """
         Send a commmand to the device. 
         """
@@ -161,7 +161,7 @@ class InfoDevice(RobotDevice):
         """
 
         self.messages.append(RobotMessage(destination="controller",
-                                          self.name,
+                                          device_name=self.name,
                                           message=command))
 
 class GPIOMotor(RobotDevice):

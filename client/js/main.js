@@ -1,7 +1,7 @@
 // ROBOT CONTROL CONSTANTS
 var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
-var LOG_LEVEL = 1;
+var LOG_LEVEL = 5;
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
@@ -24,18 +24,29 @@ function terminalLogger(message){
         }
     }
 
+    var identifier = '';
+    var this_class = '';
+
     // Is the message going to robot, to the contoller, or a warning?
     if (message_array[0] == "robot"){
-        $("#terminal").append("<span   class=\"to-robot-msg\"><b>You    </b>:");
-    } else if (message_array[0] == "controller"){
-        $("#terminal").append("<span class=\"from-robot-msg\"><b>Robot  </b>: ");
+        identifier = "You    : ";
+        this_class = "to-robot-msg";
     } else if (message_array[0] == "warn"){
-        $("#terminal").append("<span       class=\"warn-msg\"><b>Warning</b>: ");
+        identifier = "Warning: ";
+        this_class = "warn-msg";
+    } else {
+        identifier = "Robot  : ";
+        this_class = "from-robot-msg";
     }
 
     // Write message contents 
-    $("#terminal").append(message_array[2] + ": ");
-    $("#terminal").append(message_array[3] + "</span>\n");
+    $("#terminal").append($("<span></span>").addClass(this_class)
+                                            .text(identifier + 
+                                                  message_array[2] + 
+                                                  ": " +
+                                                  message_array.slice(3) + 
+                                                  "\n")
+                       );
 
     // Automatically scroll
     var term = $("#terminal");
@@ -122,7 +133,7 @@ function constructMessage(destination,delay,device,message){
     device = typeof device !== 'undefined' ? device : "info";     
     message = typeof message !== 'undefined' ? message : "empty message";     
 
-    return destination + "|" + delay + "|" device + "|" + message
+    return destination + "|" + delay + "|" + device + "|" + message;
 
 }
 
@@ -181,6 +192,11 @@ function closeClient(){
 function parseDistanceMessage(message_array){
 
     /* Deal with distance information spewed by robot */
+    
+    // Ignore ping-back
+    if (message_array[3] == "get"){
+        return;
+    }
 
     // Update user interface
     var dist = 100*parseFloat(message_array[3]);

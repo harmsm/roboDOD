@@ -34,11 +34,11 @@
 }
 
 .from-robot-msg {
-    color: Orange;
+    color: Purple;
 }
 
 .to-robot-msg { 
-    color: gray;
+    color: Gray;
 }
 
 .warn-msg {
