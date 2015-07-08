@@ -138,10 +138,10 @@ class DeviceManager(multiprocessing.Process):
 
                 device_output = d.getData()
 
-                if device_output != None:
-                    if device_output.destination == "robot":
-                        self.input_queue.put(device_output)
+                for o in device_output:
+                    if o.destination == "robot":
+                        self.input_queue.put(o)
                     else:
-                        self.output_queue.put(device_output)
+                        self.output_queue.put(o)
 
 
