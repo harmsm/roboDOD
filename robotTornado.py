@@ -66,7 +66,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         # Turn on the status light indicating that we're connected.
         q = self.application.settings.get('queue')
-        q.put("robot|-1|client_connected|on")
  
     def on_message(self, message):
         """

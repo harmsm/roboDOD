@@ -75,6 +75,9 @@ function openSocket(){
     // If we connect ...
     if(socket) {
 
+        // Turn on light saying things are connected
+        sendMessage(socket,"robot|-1|client_connected|on",true);
+
         // Initialize robot to stopped, zero speed.
         setSpeed(0,socket);
         setSteer("forward",socket);
