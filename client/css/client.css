@@ -15,7 +15,9 @@
 }
 
 .terminal {
+    height:375px;
     max-height:375px;
+    overflow-y:scroll;
 }
 
 .range-warning {
@@ -23,7 +25,8 @@
 }
 
 .range-too-close { 
-    color: Red;
+    color: DarkOrange;
+    font-weight: bold;
 }
 
 .btn-current-steer { }
@@ -38,10 +41,10 @@
 }
 
 .to-robot-msg { 
-    color: Gray;
+    color: Green;
 }
 
 .warn-msg {
-    color: Red;
-    font-weight: bold;
+    color: DarkOrange;
+    /*font-weight: bold;*/
 }

@@ -1,7 +1,7 @@
 // ROBOT CONTROL CONSTANTS
 var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
-var LOG_LEVEL = 5;
+var LOG_LEVEL = 1;
 
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
@@ -42,17 +42,16 @@ function terminalLogger(message){
     // Write message contents 
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + 
-                                                  message_array[2] + 
-                                                  ": " +
-                                                  message_array.slice(3) + 
-                                                  "\n")
+                                                  message_array[2] + ": " +
+                                                  message_array.slice(3))
+                                            .append("<br/>")
                        );
 
     // Automatically scroll
     var term = $("#terminal");
     if (term.length){
         term.scrollTop(term[0].scrollHeight - term.height());
-    }    
+    }
 
 }
 
