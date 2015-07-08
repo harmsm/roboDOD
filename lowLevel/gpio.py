@@ -48,6 +48,7 @@ class GPIOMotor:
         self.pin2_pwm.start(self.duty_cycle)
    
     def coast(self):
+
         self.pin1_pwm.stop()
         self.pin2_pwm.stop()
 
@@ -110,19 +111,12 @@ class GPIOLED:
             self.on()
 
     def setPWMFrequency(self,frequency):
-        """
-        Set LED pwm frequency.
-        """
 
         self.frequency = frequency
         self.pwm.ChangeFrequency(self.frequency)
  
 
     def setPWMDutyCycle(self,duty_cycle):
-        """
-        Set LED PWM duty cycle (how much the LED is on during the oscillation 
-        defined by frequency). 
-        """
 
         self.duty_cycle = duty_cycle
         self.pwm.ChangeDutyCycle(self.duty_cycle)

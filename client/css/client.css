@@ -32,3 +32,16 @@
 .message-storage {
     visibility: hidden;
 }
+
+.from-robot-msg {
+    color: Orange;
+}
+
+.to-robot-msg { 
+    color: gray;
+}
+
+.warn-msg {
+    color: Red;
+    font-weight: bold;
+}
