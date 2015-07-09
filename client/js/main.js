@@ -89,7 +89,7 @@ function openSocket(){
     url = url.replace(/\/+$/, "");
 
     // Start up socket.
-    var host = "ws://" + url + "/ws";
+    var host = "wss://" + url + "/wss";
     socket = new WebSocket(host);
 
     // If we connect ...

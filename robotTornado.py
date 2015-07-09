@@ -138,7 +138,7 @@ def main(argv=None):
     app = tornado.web.Application(
         handlers=[
             (r"/", IndexHandler),
-            (r"/ws", WebSocketHandler),
+            (r"/wss", WebSocketHandler),
             (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
             (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
             (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
@@ -146,7 +146,12 @@ def main(argv=None):
             (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
         ], queue=dm.input_queue
     )
-    httpServer = tornado.httpserver.HTTPServer(app)
+
+    httpServer = tornado.httpserver.HTTPServer(app,ssl_options={
+        "certfile": "/home/harmsm/keys/ca.crt",
+        "keyfile":  "/home/harmsm/keys/ca.key",
+    })
+
     httpServer.listen(options.port)
 
     # Indicate that robot is ready to listen
