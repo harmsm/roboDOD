@@ -14,12 +14,13 @@ class RobotMessage:
     packets that need to be sent over the web socket.
     """
 
-    def __init__(self,destination=None,delay_time=-1,device_name=None,
+    def __init__(self,destination=None,source=None,delay_time=-1,device_name=None,
                  message=""):
 
         self.arrival_time = time.time()
 
         self.destination = destination
+        self.source = source
         self.delay_time = delay_time
         self.device_name = device_name
         self.message = message
@@ -35,11 +36,12 @@ class RobotMessage:
 
         try:
             self.destination = packet[0]
-            self.delay_time = float(packet[1])
-            self.device_name = packet[2]
-            self.message = "|".join(packet[3:])
+            self.source = packet[1]
+            self.delay_time = float(packet[2])
+            self.device_name = packet[3]
+            self.message = "|".join(packet[4:])
         except (IndexError,ValueError):
-            err = "controller|-1|error|mangled packet (%s) recieved!" % (data)
+            err = "controller|robot|-1|error|mangled packet ({:s}) recieved!".format(data)
             raise RobotDeviceManagerError(err)
 
         self.minimum_time = self.arrival_time + self.delay_time
@@ -48,10 +50,11 @@ class RobotMessage:
         """
         Convert a message instance to a string.
         """
-        out = "%s|%.3f|%s|%s"  % (self.destination,
-                                  self.delay_time,
-                                  self.device_name,
-                                  self.message)
+        out = "{:s}|{:s}|{:.3f}|{:s}|{:s}".format(self.destination,
+                                                  self.source,
+                                                  self.delay_time,
+                                                  self.device_name,
+                                                  self.message)
 
         return out
 

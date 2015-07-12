@@ -3,6 +3,21 @@ var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
 var LOG_LEVEL = 1;
 
+function constructMessage(destination,source,delay,device,message){
+
+    // Construct a message in the string format recognized by RobotMessage and
+    // terminalLogger
+    
+    destination = typeof destination !== 'undefined' ? destination : "robot";    
+    source = typeof destination !== 'undefined' ? destination : "controller";    
+    delay = typeof delay !== 'undefined' ? delay : "-1";     
+    device = typeof device !== 'undefined' ? device : "info";     
+    message = typeof message !== 'undefined' ? message : "empty message";     
+
+    return destination + "|" + source + "|" + delay + "|" + device + "|" + message;
+
+}
+
 /* ------------------------------------------------------------------------- */
 /* Basic socket functions */
 /* ------------------------------------------------------------------------- */
@@ -19,7 +34,7 @@ function terminalLogger(message){
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
-        if (['drivetrain', 'forward_range'].indexOf(message_array[2]) >= 0) {
+        if (['drivetrain', 'forward_range'].indexOf(message_array[3]) >= 0) {
             return;
         }
     }
@@ -42,8 +57,8 @@ function terminalLogger(message){
     // Write message contents 
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + 
-                                                  message_array[2] + ": " +
-                                                  message_array.slice(3))
+                                                  message_array[3] + ": " +
+                                                  message_array.slice(4))
                                             .append("<br/>")
                        );
 
@@ -96,7 +111,8 @@ function openSocket(){
     if(socket) {
 
         // Turn on light saying things are connected
-        sendMessage(socket,"robot|-1|client_connected|on",true);
+        sendMessage(socket,constructMessage(device="client_connected_light",
+                                            message="on"),true);
 
         // Initialize robot to stopped, zero speed.
         setSpeed(0,socket);
@@ -109,32 +125,30 @@ function openSocket(){
         // Indicate that connection has been made.
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        terminalLogger("controller|-1|info|connected to " + host);
+        terminalLogger(constructMessage(destination="controller",
+                                        device="info",
+                                        message="connected to " + host));
 
         // Start measuring ranges
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,"robot|-1|forward_range|get",true);
+            sendMessage(socket,
+                        constructMessage(destination="robot",
+                                         device="forward_range",
+                                         message="get"),
+                        true);
         }, RANGE_CHECK_FREQUENCY );  // run
 
     // Or complain...
     } else {
-        terminalLogger("warn|-1|info|invalid socket \(" + host + "\)" );
+        terminalLogger(constructMessage(destination="warn",
+                                        device="info",
+                                        message="invalid socket (" + host ")"));
     }
 
 }
 
-function constructMessage(destination,delay,device,message){
-    
-    destination = typeof destination !== 'undefined' ? destination : "robot";     
-    delay = typeof delay !== 'undefined' ? delay : "-1";     
-    device = typeof device !== 'undefined' ? device : "info";     
-    message = typeof message !== 'undefined' ? message : "empty message";     
-
-    return destination + "|" + delay + "|" + device + "|" + message;
-
-}
 
 function sendMessage(socket,message,allow_repeat){
 
@@ -170,11 +184,11 @@ function recieveMessage(message) {
     // parse the message 
     var message_array = message.split("|");
 
-    if (message_array[2] == "forward_range"){
+    if (message_array[3] == "forward_range"){
         parseDistanceMessage(message_array);
-    } else if (message_array[2] == "drivetrain"){
+    } else if (message_array[3] == "drivetrain"){
         parseDrivetrainMessage(message_array);
-    } else if (message_array[2] == "attention_light"){
+    } else if (message_array[3] == "attention_light"){
         parseAttentionLightMessage(message_array);
     }
 
@@ -183,7 +197,9 @@ function recieveMessage(message) {
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    terminalLogger("controller|-1|info|connection closed.");    
+    terminalLogger(constructMessage(destination="controller",
+                                    device="info",
+                                    message="connection closed."));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -195,12 +211,12 @@ function parseDistanceMessage(message_array){
     /* Deal with distance information spewed by robot */
     
     // Ignore ping-back
-    if (message_array[3] == "get"){
+    if (message_array[4] == "get"){
         return;
     }
 
     // Update user interface
-    var dist = 100*parseFloat(message_array[3]);
+    var dist = 100*parseFloat(message_array[4]);
     $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
 
     // Deal with distance cutoff.  If we're within 2x cutoff...
@@ -212,7 +228,10 @@ function parseDistanceMessage(message_array){
             $("#forward_range").toggleClass("range-warning",false);
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
-                terminalLogger("warn|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+                terminalLogger(constructMessage(destination="warn",
+                                                device="info",
+                                                message="Cannot move forward.  Forward range < "
+                                                        + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
                 setSteer("coast");
             }
 
@@ -232,9 +251,9 @@ function parseDistanceMessage(message_array){
 
 function parseDrivetrainMessage(message_array){
 
-    if (message_array[3] == "setspeed"){
+    if (message_array[4] == "setspeed"){
 
-        var current_speed = message_array[4].split(":")[1].split("}")[0];
+        var current_speed = message_array[5].split(":")[1].split("}")[0];
 
         // Update user interface
         $(".btn-current-speed").toggleClass("btn-default",true)
@@ -245,7 +264,7 @@ function parseDrivetrainMessage(message_array){
                                                 .toggleClass("btn-default",false);
     } else { 
     
-        var steer = message_array[3];
+        var steer = message_array[4];
 
         // Update user interface
         $(".btn-current-steer").toggleClass("btn-default",true)
@@ -260,11 +279,11 @@ function parseDrivetrainMessage(message_array){
 
 function parseAttentionLightMessage(message_array){
 
-    if (message_array[3] == "flash" || message_array[3] == "on"){
+    if (message_array[4] == "flash" || message_array[4] == "on"){
         $("#attention_light_button").toggleClass("btn-success",true);
         $("#attention_light_button").toggleClass("btn-default",false);
         $("#attention_light_button").toggleClass("attention-light-active",true);
-    } else if (message_array[3] == "off") {
+    } else if (message_array[4] == "off") {
         $("#attention_light_button").toggleClass("btn-success",false);
         $("#attention_light_button").toggleClass("btn-default",true);
         $("#attention_light_button").toggleClass("attention-light-active",false);
@@ -282,12 +301,15 @@ function setSteer(steer){
     
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
-        terminalLogger("warn|-1|info|Cannot move forward.  Forward range < " + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm.");
+        terminalLogger(constructMessage(destination="warn",
+                                        device="info",
+                                        message="Cannot move forward.  Forward range < " +
+                                                RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
         steer = "coast";
     }
 
     // Tell the robot what to do
-    sendMessage(socket,"robot|-1|drivetrain|" + steer,true);
+    sendMessage(socket,"robot|controller|-1|drivetrain|" + steer,true);
 
 }
 
@@ -296,16 +318,16 @@ function setSpeed(speed,socket){
     /* Set the current speed for the robot */
 
     // Tell the robot what to do.
-    sendMessage(socket,"robot|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
+    sendMessage(socket,"robot|controller|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
 
 }
 
 function setAttentionLight(socket){
 
     if ($("#attention_light_button").hasClass("attention-light-active")){
-        sendMessage(socket,"robot|-1|attention_light|off",true);
+        sendMessage(socket,"robot|controller|-1|attention_light|off",true);
     } else {
-        sendMessage(socket,"robot|-1|attention_light|flash",true);
+        sendMessage(socket,"robot|controller|-1|attention_light|flash",true);
     }
 
 }

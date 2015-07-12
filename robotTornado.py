@@ -156,7 +156,7 @@ def main(argv=None):
 
     # Indicate that robot is ready to listen
     dm.input_queue.put("robot|-1|info|Listening on port: %i" % options.port)
-    dm.input_queue.put("robot|-1|system_up|on")
+    dm.input_queue.put("robot|-1|system_up_light|on")
  
     def checkResults():
         """
