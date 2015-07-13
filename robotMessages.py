@@ -32,8 +32,6 @@ class RobotMessage:
         Parse a message string and use it to populate the message.
         """
 
-        print(packet_string)
-
         packet = packet_string.split("|")
 
         try:

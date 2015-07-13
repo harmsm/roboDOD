@@ -1,28 +1,31 @@
 // ROBOT CONTROL CONSTANTS
 var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
-var LOG_LEVEL = 1;
+var LOG_LEVEL = 4;
 
 
 /* ------------------------------------------------------------------------- */
 /* Message classes. */
 /* ------------------------------------------------------------------------- */
-function constructMessage(destination,source,delay,device_name,message){
+function constructMessage(options){
 
     // Construct a message 
-  
-    destination = typeof destination !== 'undefined' ? destination : "robot";    
-    source = typeof source !== 'undefined' ? source : "controller";    
-    delay = typeof delay !== 'undefined' ? delay : "0";     
-    device_name = typeof device_name !== 'undefined' ? device_name : "info";     
-    message = typeof message !== 'undefined' ? message : "";     
+
+    options = typeof options !== 'undefined' ? options : {};    
+
+    // Construct default values
+    options.destination = typeof options.destination !== 'undefined' ? options.destination : "robot";    
+    options.source = typeof options.source !== 'undefined' ? options.source : "controller";    
+    options.delay = typeof options.delay !== 'undefined' ? options.delay : "0";     
+    options.device_name = typeof options.device_name !== 'undefined' ? options.device_name : "info";     
+    options.message = typeof options.message !== 'undefined' ? options.message : "";     
 
     var msg  = { 
-                destination : destination,
-                source      : source,
-                delay       : delay,
-                device_name : device_name,
-                message     : message,
+                destination : options.destination,
+                source      : options.source,
+                delay       : options.delay,
+                device_name : options.device_name,
+                message     : options.message,
 
                 messageToString : function(){
                     return this.destination + "|" + this.source + "|" + this.delay + "|" + this.device_name + "|" + this.message;
@@ -34,13 +37,13 @@ function constructMessage(destination,source,delay,device_name,message){
 
 function messageFromString(message_string){
 
-    var message_array = message_string.split("|")
+    var message_array = message_string.split("|");
 
-    return constructMessage(destination=message_array[0],
-                            source=message_array[1],
-                            delay=message_array[2],
-                            device_name=message_array[3],
-                            message=(message_array.slice(4)).join("|"));
+    return constructMessage({destination:message_array[0],
+                             source:message_array[1],
+                             delay:message_array[2],
+                             device_name:message_array[3],
+                             message:(message_array.slice(4)).join("|")});
 
 }
 
@@ -149,23 +152,23 @@ function openSocket(){
         // Indicate that connection has been made.
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        terminalLogger(constructMessage(destination="controller",
-                                        device_name="info",
-                                        message="connected to " + host));
+        terminalLogger(constructMessage({destination:"controller",
+                                         device_name:"info",
+                                         message:"connected to " + host}));
 
         // Start measuring ranges
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,constructMessage(device_name="forward_range",
-                                                message="get"));
+            sendMessage(socket,constructMessage({device_name:"forward_range",
+                                                 message:"get"}));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     // Or complain...
     } else {
-        terminalLogger(constructMessage(destination="warn",
-                                        device_name="info",
-                                        message="invalid socket (" + host + ")"));
+        terminalLogger(constructMessage({destination:"warn",
+                                         device_name:"info",
+                                         message:"invalid socket (" + host + ")"}));
     }
 
 }
@@ -223,9 +226,9 @@ function recieveMessage(message_string) {
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    terminalLogger(constructMessage(destination="controller",
-                                    device_name="info",
-                                    message="connection closed."));
+    terminalLogger(constructMessage({destination:"controller",
+                                     device_name:"info",
+                                     message:"connection closed."}));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -254,10 +257,10 @@ function parseDistanceMessage(msg){
             $("#forward_range").toggleClass("range-warning",false);
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
-                terminalLogger(constructMessage(destination="warn",
-                                                device_name="info",
-                                                message="Cannot move forward.  Forward range < "
-                                                        + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
+                terminalLogger(constructMessage({destination:"warn",
+                                                 device_name:"info",
+                                                 message:"Cannot move forward.  Forward range < "
+                                                         + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
                 setSteer("coast");
             }
 
@@ -328,15 +331,15 @@ function setSteer(steer){
     
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
-        terminalLogger(constructMessage(destination="warn",
-                                        device_name="info",
-                                        message="Cannot move forward.  Forward range < " +
-                                                RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
+        terminalLogger(constructMessage({destination:"warn",
+                                         device_name:"info",
+                                         message:"Cannot move forward.  Forward range < " +
+                                                 RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
         steer = "coast";
     }
 
     // Tell the robot what to do
-    sendMessage(socket,constructMessage(device_name="drivetrain",message=steer));
+    sendMessage(socket,constructMessage({device_name:"drivetrain",message:steer}));
 
 }
 
@@ -345,16 +348,16 @@ function setSpeed(speed,socket){
     /* Set the current speed for the robot */
 
     // Tell the robot what to do.
-    sendMessage(socket,constructMessage(device_name="drivetrain",message="setspeed|{\"speed\":"+speed+"}"));
+    sendMessage(socket,constructMessage({device_name:"drivetrain",message:"setspeed|{\"speed\":"+speed+"}"}));
 
 }
 
 function setAttentionLight(socket){
 
     if ($("#attention_light_button").hasClass("attention-light-active")){
-        sendMessage(socket,constructMessage(device_name="attention_light",message="off"));
+        sendMessage(socket,constructMessage({device_name:"attention_light",message:"off"}));
     } else {
-        sendMessage(socket,constructMessage(device_name="attention_light",message="flash"));
+        sendMessage(socket,constructMessage({device_name:"attention_light",message:"flash"}));
     }
 
 }
