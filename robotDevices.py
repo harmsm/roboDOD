@@ -105,7 +105,7 @@ class RobotDevice:
                     self.messages.append(RobotMessage(destination="warn",
                                                       source="robot",
                                                       device_name=self.name,
-                                                      message=err)
+                                                      message=err))
 
             # No kwargs specified         
             else:

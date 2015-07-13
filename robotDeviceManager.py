@@ -1,7 +1,5 @@
 __description__ = \
 """
-packet structure:
-destination|time_delay|device_name|dict_key|[**kwargs]
 
 """
 __author__ = "Michael J. Harms"
@@ -56,8 +54,10 @@ class DeviceManager(multiprocessing.Process):
         d.connectToManager(self.__class__.__name__)
         self.loaded_devices.append(d)
         if d.name in list(self.loaded_devices_dict.keys()):
-            err = "robot|-1|error|device %s already connected!\n" % d.name
-            raise RobotDeviceManagerError(err)
+            err = RobotMessage(destination="warn",
+                               message="device {:s} already connected!".format(d.name))
+            self.output_queue.put(err)
+
         self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
     def unloadDevice(self,device_name):
@@ -68,8 +68,9 @@ class DeviceManager(multiprocessing.Process):
         try:       
             index = self.loaded_devices_dict[device_name] 
         except KeyError:
-            err = "robot|-1|error|device %s is not connected.\n" % device_name
-            raise RobotDeviceManagerError(err)
+            err = RobotMessage(destination="warn",
+                               message="device {:s} is not connected".format(device_name))
+            self.output_queue.put(err)
 
         self.loaded_devices[index].disconnectFromManager()
         self.loaded_devices.pop(index)

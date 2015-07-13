@@ -32,6 +32,8 @@ class RobotMessage:
         Parse a message string and use it to populate the message.
         """
 
+        print(packet_string)
+
         packet = packet_string.split("|")
 
         try:
@@ -41,12 +43,12 @@ class RobotMessage:
             self.device_name = packet[3]
             self.message = "|".join(packet[4:])
         except (IndexError,ValueError):
-            err = "controller|robot|-1|error|mangled packet ({:s}) recieved!".format(data)
+            err = "mangled packet ({:s}) recieved!".format(packet_string)
             raise RobotDeviceManagerError(err)
 
         self.minimum_time = self.arrival_time + self.delay_time
 
-    def convertMessageToString(self):
+    def asString(self):
         """
         Convert a message instance to a string.
         """

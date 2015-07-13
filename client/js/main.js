@@ -7,25 +7,25 @@ var LOG_LEVEL = 1;
 /* ------------------------------------------------------------------------- */
 /* Message classes. */
 /* ------------------------------------------------------------------------- */
-function constructMessage(destination,source,delay,device,message){
+function constructMessage(destination,source,delay,device_name,message){
 
     // Construct a message 
-   
+  
     destination = typeof destination !== 'undefined' ? destination : "robot";    
-    source = typeof destination !== 'undefined' ? destination : "controller";    
+    source = typeof source !== 'undefined' ? source : "controller";    
     delay = typeof delay !== 'undefined' ? delay : "0";     
-    device = typeof device !== 'undefined' ? device : "info";     
-    message = typeof message !== 'undefined' ? message : "empty message";     
+    device_name = typeof device_name !== 'undefined' ? device_name : "info";     
+    message = typeof message !== 'undefined' ? message : "";     
 
     var msg  = { 
                 destination : destination,
                 source      : source,
                 delay       : delay,
-                device      : device,
+                device_name : device_name,
                 message     : message,
 
                 messageToString : function(){
-                    return this.destination + "|" + this.source + "|" + this.delay + "|" + this.device + "|" + this.message;
+                    return this.destination + "|" + this.source + "|" + this.delay + "|" + this.device_name + "|" + this.message;
                 }};
 
     return msg;
@@ -39,7 +39,7 @@ function messageFromString(message_string){
     return constructMessage(destination=message_array[0],
                             source=message_array[1],
                             delay=message_array[2],
-                            device=message_array[3],
+                            device_name=message_array[3],
                             message=(message_array.slice(4)).join("|"));
 
 }
@@ -57,7 +57,7 @@ function terminalLogger(msg){
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
-        if (msg.device == "drivetrain" || msg.device == "forward_range"){
+        if (msg.device_name == "drivetrain" || msg.device_name == "forward_range"){
             return;
         }
     }
@@ -66,22 +66,24 @@ function terminalLogger(msg){
     var this_class = '';
 
     // Is the message going to robot, to the contoller, or a warning?
-    if (msg.destination == "robot"){
+    if (msg.source == "controller"){
         identifier = "You: ";
         this_class = "to-robot-msg";
-    } else if (msg.destination == "warn"){
-        identifier = "Warning: ";
-        this_class = "warn-msg";
     } else {
         identifier = "Robot: ";
         this_class = "from-robot-msg";
+    }
+    
+    if (msg.destination == "warn"){
+        identifier = "Warning: ";
+        this_class = "warn-msg";
     }
 
     // Write message contents 
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + 
-                                                  msg.device = ": " +
-                                                  msg.message))
+                                                  msg.device_name + ": " +
+                                                  msg.message)
                                             .append("<br/>")
                        );
 
@@ -127,14 +129,14 @@ function openSocket(){
     url = url.replace(/\/+$/, "");
 
     // Start up socket.
-    var host = "wss://" + url + "/wss";
+    var host = "ws://" + url + "/ws";
     socket = new WebSocket(host);
 
     // If we connect ...
     if(socket) {
 
         // Turn on light saying things are connected
-        sendMessage(socket,constructMessage(device="client_connected_light",message="on"));
+        sendMessage(socket,constructMessage({device_name:"client_connected_light",message:"on"}));
 
         // Initialize robot to stopped, zero speed.
         setSpeed(0,socket);
@@ -148,22 +150,22 @@ function openSocket(){
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
         terminalLogger(constructMessage(destination="controller",
-                                        device="info",
+                                        device_name="info",
                                         message="connected to " + host));
 
         // Start measuring ranges
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,constructMessage(device="forward_range",
+            sendMessage(socket,constructMessage(device_name="forward_range",
                                                 message="get"));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     // Or complain...
     } else {
         terminalLogger(constructMessage(destination="warn",
-                                        device="info",
-                                        message="invalid socket (" + host ")"));
+                                        device_name="info",
+                                        message="invalid socket (" + host + ")"));
     }
 
 }
@@ -208,11 +210,11 @@ function recieveMessage(message_string) {
     // Log the message to the terminal
     terminalLogger(msg);
 
-    if (msg.device == "forward_range"){
+    if (msg.device_name == "forward_range"){
         parseDistanceMessage(msg);
-    } else if (msg.device == "drivetrain"){
+    } else if (msg.device_name == "drivetrain"){
         parseDrivetrainMessage(msg);
-    } else if (msg.device == "attention_light"){
+    } else if (msg.device_name == "attention_light"){
         parseAttentionLightMessage(msg);
     }
 
@@ -222,7 +224,7 @@ function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
     terminalLogger(constructMessage(destination="controller",
-                                    device="info",
+                                    device_name="info",
                                     message="connection closed."));
 }
 
@@ -253,7 +255,7 @@ function parseDistanceMessage(msg){
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
                 terminalLogger(constructMessage(destination="warn",
-                                                device="info",
+                                                device_name="info",
                                                 message="Cannot move forward.  Forward range < "
                                                         + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
                 setSteer("coast");
@@ -327,14 +329,14 @@ function setSteer(steer){
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
         terminalLogger(constructMessage(destination="warn",
-                                        device="info",
+                                        device_name="info",
                                         message="Cannot move forward.  Forward range < " +
                                                 RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."));
         steer = "coast";
     }
 
     // Tell the robot what to do
-    sendMessage(socket,constructMessage(device="drivetrain",message=steer));
+    sendMessage(socket,constructMessage(device_name="drivetrain",message=steer));
 
 }
 
@@ -343,16 +345,16 @@ function setSpeed(speed,socket){
     /* Set the current speed for the robot */
 
     // Tell the robot what to do.
-    sendMessage(socket,constructMessage(device="drivetrain",message="setspeed|{\"speed\":"+speed+"}"));
+    sendMessage(socket,constructMessage(device_name="drivetrain",message="setspeed|{\"speed\":"+speed+"}"));
 
 }
 
 function setAttentionLight(socket){
 
     if ($("#attention_light_button").hasClass("attention-light-active")){
-        sendMessage(socket,constructMessage(device="attention_light",message="off"));
+        sendMessage(socket,constructMessage(device_name="attention_light",message="off"));
     } else {
-        sendMessage(socket,constructMessage(device="attention_light",message="flash"));
+        sendMessage(socket,constructMessage(device_name="attention_light",message="flash"));
     }
 
 }
