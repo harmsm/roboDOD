@@ -3,18 +3,44 @@ var RANGE_PROXIMITY_CUTOFF = 10;  // cm
 var RANGE_CHECK_FREQUENCY = 2000; // milliseconds
 var LOG_LEVEL = 1;
 
+
+/* ------------------------------------------------------------------------- */
+/* Message classes. */
+/* ------------------------------------------------------------------------- */
 function constructMessage(destination,source,delay,device,message){
 
-    // Construct a message in the string format recognized by RobotMessage and
-    // terminalLogger
-    
+    // Construct a message 
+   
     destination = typeof destination !== 'undefined' ? destination : "robot";    
     source = typeof destination !== 'undefined' ? destination : "controller";    
-    delay = typeof delay !== 'undefined' ? delay : "-1";     
+    delay = typeof delay !== 'undefined' ? delay : "0";     
     device = typeof device !== 'undefined' ? device : "info";     
     message = typeof message !== 'undefined' ? message : "empty message";     
 
-    return destination + "|" + source + "|" + delay + "|" + device + "|" + message;
+    var msg  = { 
+                destination : destination,
+                source      : source,
+                delay       : delay,
+                device      : device,
+                message     : message,
+
+                messageToString : function(){
+                    return this.destination + "|" + this.source + "|" + this.delay + "|" + this.device + "|" + this.message;
+                }};
+
+    return msg;
+                
+}
+
+function messageFromString(message_string){
+
+    var message_array = message_string.split("|")
+
+    return constructMessage(destination=message_array[0],
+                            source=message_array[1],
+                            delay=message_array[2],
+                            device=message_array[3],
+                            message=(message_array.slice(4)).join("|"));
 
 }
 
@@ -22,19 +48,16 @@ function constructMessage(destination,source,delay,device,message){
 /* Basic socket functions */
 /* ------------------------------------------------------------------------- */
 
-function terminalLogger(message){
+function terminalLogger(msg){
 
     /* Log commands in the terminal */
 
     // Write to browser console in case all hell breaks loose
-    console.log(message);
-
-    // Split the message
-    var message_array = message.split("|");
+    console.log(msg.messageToString());
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
-        if (['drivetrain', 'forward_range'].indexOf(message_array[3]) >= 0) {
+        if (msg.device == "drivetrain" || msg.device == "forward_range"){
             return;
         }
     }
@@ -43,10 +66,10 @@ function terminalLogger(message){
     var this_class = '';
 
     // Is the message going to robot, to the contoller, or a warning?
-    if (message_array[0] == "robot"){
+    if (msg.destination == "robot"){
         identifier = "You: ";
         this_class = "to-robot-msg";
-    } else if (message_array[0] == "warn"){
+    } else if (msg.destination == "warn"){
         identifier = "Warning: ";
         this_class = "warn-msg";
     } else {
@@ -57,8 +80,8 @@ function terminalLogger(message){
     // Write message contents 
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + 
-                                                  message_array[3] + ": " +
-                                                  message_array.slice(4))
+                                                  msg.device = ": " +
+                                                  msg.message))
                                             .append("<br/>")
                        );
 
@@ -111,8 +134,7 @@ function openSocket(){
     if(socket) {
 
         // Turn on light saying things are connected
-        sendMessage(socket,constructMessage(device="client_connected_light",
-                                            message="on"),true);
+        sendMessage(socket,constructMessage(device="client_connected_light",message="on"));
 
         // Initialize robot to stopped, zero speed.
         setSpeed(0,socket);
@@ -133,11 +155,8 @@ function openSocket(){
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,
-                        constructMessage(destination="robot",
-                                         device="forward_range",
-                                         message="get"),
-                        true);
+            sendMessage(socket,constructMessage(device="forward_range",
+                                                message="get"));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     // Or complain...
@@ -155,41 +174,46 @@ function sendMessage(socket,message,allow_repeat){
     /* Send a message to the socket.  allow_repeat is a bool that says whether
      * we should pass the same message over and over. */
 
+    // By default, allow repeats
+    allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
+
     // Wait until the state of the socket is not ready and send the message when it is...
     waitForSocketConnection(socket, function(){
 
         // Log the message to the terminal    
         terminalLogger(message);
 
+        var message_string = message.messageToString();
+
         if (($("#last-sent-message").html() != message) || (allow_repeat == true)){
-            socket.send(message);
+            socket.send(message_string);
 
             // update the last message sent
-            $("#last-sent-message").html(message);
+            $("#last-sent-message").html(message_string);
         }
     });
 
 }
 
-function recieveMessage(message) {
+function recieveMessage(message_string) {
 
     /* Recieve a message */ 
 
     // update the last message recieved
-    $("#last-recieved-message").html(message);
-
-    // Log the message to the terminal
-    terminalLogger(message);
-
+    $("#last-recieved-message").html(message_string);
+    
     // parse the message 
-    var message_array = message.split("|");
+    msg = messageFromString(message_string);
+    
+    // Log the message to the terminal
+    terminalLogger(msg);
 
-    if (message_array[3] == "forward_range"){
-        parseDistanceMessage(message_array);
-    } else if (message_array[3] == "drivetrain"){
-        parseDrivetrainMessage(message_array);
-    } else if (message_array[3] == "attention_light"){
-        parseAttentionLightMessage(message_array);
+    if (msg.device == "forward_range"){
+        parseDistanceMessage(msg);
+    } else if (msg.device == "drivetrain"){
+        parseDrivetrainMessage(msg);
+    } else if (msg.device == "attention_light"){
+        parseAttentionLightMessage(msg);
     }
 
 }   
@@ -206,17 +230,17 @@ function closeClient(){
 /* Recieve data from the robot */
 /* ------------------------------------------------------------------------- */
 
-function parseDistanceMessage(message_array){
+function parseDistanceMessage(msg){
 
     /* Deal with distance information spewed by robot */
     
     // Ignore ping-back
-    if (message_array[4] == "get"){
+    if (msg.message == "get"){
         return;
     }
 
     // Update user interface
-    var dist = 100*parseFloat(message_array[4]);
+    var dist = 100*parseFloat(msg.message);
     $("#forward_range").html("Range: " + dist.toFixed(3) + " cm");
 
     // Deal with distance cutoff.  If we're within 2x cutoff...
@@ -249,11 +273,12 @@ function parseDistanceMessage(message_array){
 
 }
 
-function parseDrivetrainMessage(message_array){
+function parseDrivetrainMessage(msg){
 
-    if (message_array[4] == "setspeed"){
+    if (msg.message.split("|")[0] == "setspeed"){
 
-        var current_speed = message_array[5].split(":")[1].split("}")[0];
+        
+        var current_speed = msg.message.split("|")[1].split(":")[1].split("}")[0];
 
         // Update user interface
         $(".btn-current-speed").toggleClass("btn-default",true)
@@ -264,7 +289,7 @@ function parseDrivetrainMessage(message_array){
                                                 .toggleClass("btn-default",false);
     } else { 
     
-        var steer = message_array[4];
+        var steer = msg.message;
 
         // Update user interface
         $(".btn-current-steer").toggleClass("btn-default",true)
@@ -277,13 +302,13 @@ function parseDrivetrainMessage(message_array){
 
 }
 
-function parseAttentionLightMessage(message_array){
+function parseAttentionLightMessage(msg){
 
-    if (message_array[4] == "flash" || message_array[4] == "on"){
+    if (msg.message == "flash" || msg.message == "on"){
         $("#attention_light_button").toggleClass("btn-success",true);
         $("#attention_light_button").toggleClass("btn-default",false);
         $("#attention_light_button").toggleClass("attention-light-active",true);
-    } else if (message_array[4] == "off") {
+    } else if (msg.message == "off") {
         $("#attention_light_button").toggleClass("btn-success",false);
         $("#attention_light_button").toggleClass("btn-default",true);
         $("#attention_light_button").toggleClass("attention-light-active",false);
@@ -309,7 +334,7 @@ function setSteer(steer){
     }
 
     // Tell the robot what to do
-    sendMessage(socket,"robot|controller|-1|drivetrain|" + steer,true);
+    sendMessage(socket,constructMessage(device="drivetrain",message=steer));
 
 }
 
@@ -318,16 +343,16 @@ function setSpeed(speed,socket){
     /* Set the current speed for the robot */
 
     // Tell the robot what to do.
-    sendMessage(socket,"robot|controller|-1|drivetrain|setspeed|{\"speed\":" + speed + "}",true);
+    sendMessage(socket,constructMessage(device="drivetrain",message="setspeed|{\"speed\":"+speed+"}"));
 
 }
 
 function setAttentionLight(socket){
 
     if ($("#attention_light_button").hasClass("attention-light-active")){
-        sendMessage(socket,"robot|controller|-1|attention_light|off",true);
+        sendMessage(socket,constructMessage(device="attention_light",message="off"));
     } else {
-        sendMessage(socket,"robot|controller|-1|attention_light|flash",true);
+        sendMessage(socket,constructMessage(device="attention_light",message="flash"));
     }
 
 }

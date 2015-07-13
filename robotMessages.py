@@ -14,7 +14,7 @@ class RobotMessage:
     packets that need to be sent over the web socket.
     """
 
-    def __init__(self,destination=None,source=None,delay_time=-1,device_name=None,
+    def __init__(self,destination=None,source=None,delay_time=0,device_name=None,
                  message=""):
 
         self.arrival_time = time.time()
