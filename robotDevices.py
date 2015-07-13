@@ -101,25 +101,30 @@ class RobotDevice:
                     kwargs = eval(command[1])
                     self.control_dict[function_call](**kwargs)
                 except (SyntaxError,TypeError):
-                    err = "Mangled command arguments (%s)" % command[1]
-                    raise RobotDeviceError(err)
+                    err = "Mangled command arguments ({:s})".format(command[1])
+                    self.messages.append(RobotMessage(destination="warn",
+                                                      source="robot",
+                                                      device_name=self.name,
+                                                      message=err))
+
             # No kwargs specified         
             else:
                 self.control_dict[function_call]()
 
             # Send the message we just processed back to the controller.
             self.messages.append(RobotMessage(destination="controller",
+                                              source="robot",
                                               device_name=self.name,
                                               message=message))
 
         # command not recognized
         except KeyError:
-            err = "Command (%s) not found for %s." % (command,self.__class__.__name__)
-            raise RobotDeviceError("robot|-1|error|%s" % err)
-
-            #self.messages.append(RobotMessage(destination="controller",
-            #                                  device_name=self.name,
-            #                                  message=message))
+            err = "Command {:s} not found for {:s}".format(command,
+                                                           self.__class__.__name__)
+            self.messages.append(RobotMessage(destination="warn",
+                                              source=robot,
+                                              device_name=self.name,
+                                              message=err))
    
     def getNow(self,command):
         """
@@ -161,6 +166,7 @@ class InfoDevice(RobotDevice):
         """
 
         self.messages.append(RobotMessage(destination="controller",
+                                          source="robot",
                                           device_name=self.name,
                                           message=command))
 
@@ -362,6 +368,7 @@ class LEDIndicatorLight(RobotDevice):
         # seconds by adding a "turn off" message to the output queue.  This is
         # basically a "note to self: turn of the LED after delay time seconds"
         self.messages.append(RobotMessage(destination="robot",
+                                          source="robot",
                                           delay_time=seconds_to_flash,
                                           device_name=self.name,
                                           message="off"))
@@ -409,6 +416,7 @@ class RangeFinder(RobotDevice):
 
         self.range_value = self.range_finder.getRange()
         self.messages.append(RobotMessage(destination="controller",
+                                          source="robot",
                                           device_name=self.name,
                                           message="%.12f" % self.range_value))
 
@@ -464,6 +472,7 @@ class Accelerometer(RobotDevice):
 
         v = self.getNow()
         self.messages.append(RobotMessage(destination="controller",
+                                          source="robot",
                                           device_name=self.name,
                                           message="%.10e," % self.state_vector))
 

@@ -24,6 +24,7 @@ import multiprocessing
 
 import robotConfiguration
 from robotDeviceManager import DeviceManager
+from robotMessages import RobotMessage
  
 define("port", default=8081, help="run on the given port", type=int)
  
@@ -62,7 +63,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.writeLog(info_string)
 
         # Send connection notice to client
-        self.write_message("controller|-1|info|%s" % info_string)
+        self.write_message(RobotMessage(destination="controller",
+                                        device_name="info",
+                                        message=info_string).asString())
 
         # Turn on the status light indicating that we're connected.
         q = self.application.settings.get('queue')
@@ -75,7 +78,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         if self.verbose:
             info_string = "Tornado recieved \"%s\" from client." % message
             self.writeLog(info_string)
-            self.write_message("robot|-1|info|%s" % info_string)
+            self.write_message(RobotMessage(destination="controller",
+                                            device_name="info",
+                                            message=info_string).asString())
 
         q = self.application.settings.get('queue')
         q.put(message)
@@ -92,7 +97,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         
         # Turn off the status light indicating that we're connected.
         q = self.application.settings.get('queue')
-        q.put("robot|-1|client_connected|off")
+        q.put(RobotMessage(destination="robot",
+                           device_name="client_connected_light",
+                            message="off").asString())
 
         clients.remove(self)
 
@@ -131,14 +138,15 @@ def main(argv=None):
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put("robot|-1|info|initializing")
+    dm.input_queue.put(RobotMessage(device_name="info",
+                                    message="initializing"))
 
     # Initailize handler 
     tornado.options.parse_command_line()
     app = tornado.web.Application(
         handlers=[
             (r"/", IndexHandler),
-            (r"/wss", WebSocketHandler),
+            (r"/ws", WebSocketHandler),
             (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
             (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
             (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
@@ -147,16 +155,16 @@ def main(argv=None):
         ], queue=dm.input_queue
     )
 
-    httpServer = tornado.httpserver.HTTPServer(app,ssl_options={
-        "certfile": "/home/harmsm/keys/ca.crt",
-        "keyfile":  "/home/harmsm/keys/ca.key",
-    })
-
+    httpServer = tornado.httpserver.HTTPServer(app)
     httpServer.listen(options.port)
 
     # Indicate that robot is ready to listen
-    dm.input_queue.put("robot|-1|info|Listening on port: %i" % options.port)
-    dm.input_queue.put("robot|-1|system_up|on")
+    dm.input_queue.put(RobotMessage(destination="robot",
+                                    device_name="info",
+                                    message="Listening on port: {:d}".format(options.port)))
+    dm.input_queue.put(RobotMessage(destination="robot",
+                                    device_name="system_up_light",
+                                    message="on"))
  
     def checkResults():
         """
@@ -167,7 +175,7 @@ def main(argv=None):
             m = dm.output_queue.get()
             if m.checkMessageTimestamp() == True:
                 for c in clients:
-                    c.write_message(m.convertMessageToString())
+                    c.write_message(m.asString())
             else:
                 dm.output_queue.put(m)
 
