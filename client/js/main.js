@@ -17,50 +17,51 @@ function RobotMessage(options){
     /* Construct default values for parameters */
     options.destination = typeof options.destination !== 'undefined' ? options.destination : "robot";    
     options.destination_device = typeof options.destination_device !== 'undefined' ? options.destination_device : "";     
-
     options.source = typeof options.source !== 'undefined' ? options.source : "controller";    
     options.source_device = typeof options.source_device !== 'undefined' ? options.source_device : "";
 
-    options.delay = typeof options.delay !== 'undefined' ? options.delay : "0";     
+    options.delay = typeof options.delay !== 'undefined' ? options.delay : 0.0;   
     options.message = typeof options.message !== 'undefined' ? options.message : "";     
-    
 
     /* Construct final RobotMessage class */
     var msg  = { 
 
                 /* Class attributes */
-                arrival_time       : new Date().getTime();
+                arrival_time       : new Date().getTime(),
 
                 destination        : options.destination,
                 destination_device : options.destination_device,
                 source             : options.source,
                 source_device      : options.source_device,
-                delay              : options.delay,
+                delay              : parseFloat(options.delay),
                 message            : options.message,
 
                 minimum_time       : this.arrival_time + this.delay,
 
                 /* Method: return the message in proper string format */
                 asString : function(){
-                    return this.destination + "." this.destination_device + "|" +
-                           this.source      + "." this.source_device      + "|" + 
+                    return this.destination + "." + this.destination_device + "|" +
+                           this.source      + "." + this.source_device      + "|" + 
                            this.delay + "|" + this.message;
                 },
 
                 /* Method: build a RobotMessage from a string */
                 fromString : function(message_string){
-    
+            
                     var message_array = message_string.split("|");
 
-                    this.destination:message_array[0].split(".")[0],
-                    this.destination_device:message_array[0].split(".")[1],
+                    this.arrival_time = new Date().getTime();
 
-                    this.source:message_array[1].split(".")[0],
-                    this.source_device:message_array[1].split(".")[1],
+                    this.destination = message_array[0].split(".")[0];
+                    this.destination_device = message_array[0].split(".")[1];
 
-                    this.delay:message_array[2],
-                    this.message:(message_array.slice(3)).join("|")});
+                    this.source = message_array[1].split(".")[0];
+                    this.source_device = message_array[1].split(".")[1];
 
+                    this.delay = parseFloat(message_array[2]);
+                    this.message = (message_array.slice(3)).join("|");
+
+                    this.minimum_time = this.arrival_time + this.delay;
                 },
 
                 /* Method: see if delay condition is met */
@@ -92,13 +93,14 @@ function recieveMessage(socket,msg){
      */ 
 
     /* If this is not a RobotMessage instance already, turn it into one */
-    if (typeof msg.source === "undefined"){
+    if (typeof msg.source == 'undefined'){
+
         var message_string = msg;
   
         /* parse the message */
         msg = RobotMessage();
         msg.fromString(message_string);
-    
+  
         /* update the last message recieved */
         if (msg.source != "controller"){
             $("#last-recieved-message").html(message_string);
@@ -129,7 +131,7 @@ function sendMessage(socket,message,allow_repeat){
        allow_repeat: bool that says whether we can pass same message twice in 
                      a row.
     */
-    
+   
     /* By default, allow repeats */
     allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
 
@@ -194,8 +196,8 @@ function main(){
         /* Indicate that connection has been made on contoller user interface */
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        sendMessage(RobotMessage({destination:"controller",
-                                  message:"connected to " + host}));
+        sendMessage(socket,RobotMessage({destination:"controller",
+                                         message:"connected to " + host}));
 
         // Start measuring ranges
         var myInterval = 0;
@@ -207,8 +209,8 @@ function main(){
 
     /* Or complain...  */
     } else {
-        sendMessage(RobotMessage({destination:"controller",
-                                  destination_device:"warn",
+        sendMessage(socket,RobotMessage({destination:"controller",
+                                         destination_device:"warn",
                                   message:"Could not connect to " + host + " socket"}));
     }
 
@@ -229,27 +231,31 @@ function terminalLogger(msg){
     }
 
     var identifier = '';
+    var device = '';
     var this_class = '';
 
     /* Who sent the message? */
     if (msg.source == "controller"){
         identifier = "You: ";
+        device = msg.destination_device;
         this_class = "to-robot-msg";
     } else {
         identifier = "Robot: ";
+        device = msg.source_device;
         this_class = "from-robot-msg";
     }
   
     /* If this is a warning, override existing stylle with warning */
     if (msg.destination_device == "warn"){
         identifier = "Warning: ";
+        device = msg.source_device;
         this_class = "warn-msg";
     }
 
     // Write message contents 
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + " " +
-                                                  msg.source_device + ": " +
+                                                  device + ": " +
                                                   msg.message)
                                             .append("<br/>")
                        );
@@ -265,8 +271,8 @@ function terminalLogger(msg){
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    sendMessage(RobotMessage({destination:"controller",
-                              message:"connection closed."}));
+    sendMessage(socket,RobotMessage({destination:"controller",
+                                     message:"connection closed."}));
 }
 
 
@@ -299,7 +305,8 @@ function parseDistanceMessage(msg){
             $("#forward_range").toggleClass("range-warning",false);
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
-                sendMessage(RobotMessage({destination:"controller",
+                sendMessage(socket,
+                            RobotMessage({destination:"controller",
                                           destination_device:"warn",
                                           message:"Cannot move forward.  Forward range < "
                                                   + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
@@ -404,7 +411,8 @@ function setSteer(steer,socket){
     
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
-        sendMessage(RobotMessage({destination:"controller",
+        sendMessage(socket,
+                    RobotMessage({destination:"controller",
                                   destination_device:"warn",
                                   message:"Cannot move forward.  Forward range < " +
                                            RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));

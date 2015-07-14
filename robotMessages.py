@@ -61,6 +61,7 @@ class RobotMessage:
         """
         Convert a message instance to a string.
         """
+
         out = "{:s}.{:s}|{:s}.{:s}|{:.3f}|{:s}".format(self.destination,
                                                        self.destination_device,
                                                        self.source,
@@ -75,7 +76,7 @@ class RobotMessage:
         See if a message is ready to send given its time stamp.
         """
 
-        if time.time() > self.minimum_time:
+        if 1000*time.time() > self.minimum_time:
             return True
 
         return False

@@ -140,7 +140,7 @@ class DeviceManager(multiprocessing.Process):
                         continue
 
                     message = copy(m)
-             
+           
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
                 if message.checkDelay() == True:

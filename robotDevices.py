@@ -121,7 +121,7 @@ class RobotDevice:
 
             # Send the message we just processed back to the controller.
             self._messages.append(RobotMessage(source_device=self.name,
-                                               message=message))
+                                               message=command))
 
         # Problem somewhere.
         except:
@@ -375,7 +375,7 @@ class TwoMotorCatSteer(RobotDevice):
 
             self._messages.append(RobotMessage(destination_device="warn",
                                                source_device=self.name,
-                                               message=err)
+                                               message=err))
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
@@ -478,9 +478,9 @@ class RangeFinder(RobotDevice):
             self._message.append(RobotMessage(destination_device="warn",
                                               source_device=self.name,
                                               message="range finder timed out"))
-        else:   
+        else:
             self._messages.append(RobotMessage(source_device=self.name,
-                                               message="{:.12f}".format(self.range_value)))
+                                               message="{:.12f}".format(self._range_value)))
 
     def getNow(self):
         """
