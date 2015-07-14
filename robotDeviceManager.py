@@ -7,7 +7,7 @@ __date__ = "2014-06-18"
 
 import multiprocessing, time
 from robotMessages import *
-from robotDevices import InfoDevice
+from robotDevices import DummyDevice
 from copy import copy
 
 class RobotDeviceManagerError(Exception):
@@ -41,8 +41,9 @@ class DeviceManager(multiprocessing.Process):
         for d in device_list:
             self.loadDevice(d)
 
-        # Load a virtual device for dealing with "info" commands
-        self.loadDevice(InfoDevice(name="info"))
+        # Load a virtual device for dealing with commands that have no specified
+        # device
+        self.loadDevice(DummyDevice(name="dummy"))
 
         self.sample_interval = sample_interval
     
@@ -50,15 +51,21 @@ class DeviceManager(multiprocessing.Process):
         """
         Load a device into the DeviceManager.
         """
-        
-        d.connectToManager(self.__class__.__name__)
-        self.loaded_devices.append(d)
-        if d.name in list(self.loaded_devices_dict.keys()):
-            err = RobotMessage(destination="warn",
-                               message="device {:s} already connected!".format(d.name))
-            self.output_queue.put(err)
 
-        self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
+        # load the device.  connectManager will return None unless there is
+        # a problem.        
+        status = d.connectManager(self.__class__.__name__)
+        if status != None:
+            err = RobotMessage(destination_device="warn",
+                               message=status)
+        else:
+            self.loaded_devices.append(d)
+            if d.name in list(self.loaded_devices_dict.keys()):
+                err = RobotMessage(destination_device="warn",
+                                   message="device {:s} already connected!".format(d.name))
+                self.output_queue.put(err)
+            else:
+                self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
     def unloadDevice(self,device_name):
         """
@@ -68,11 +75,11 @@ class DeviceManager(multiprocessing.Process):
         try:       
             index = self.loaded_devices_dict[device_name] 
         except KeyError:
-            err = RobotMessage(destination="warn",
+            err = RobotMessage(destination_device="warn",
                                message="device {:s} is not connected".format(device_name))
             self.output_queue.put(err)
 
-        self.loaded_devices[index].disconnectFromManager()
+        self.loaded_devices[index].disconnectManager()
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
 
@@ -83,30 +90,29 @@ class DeviceManager(multiprocessing.Process):
         """
 
         for d in self.loaded_devices:
-            d.disconnectFromManager()
+            d.disconnectManager()
 
     def sendMessageToDevice(self,message):
         """ 
         Send data to appropriate device in self.loaded_devices.
         """
 
-        try:
-            try:
-                self.loaded_devices[self.loaded_devices_dict[message.device_name]].sendData(message.message)
-            except KeyError:
-                err = "controller|-1|error|device %s not loaded.\n" % (message.device_name)
-                raise RobotDeviceManagerError(err)
-       
-        except ValueError:
-            err = "controller|-1|error|mangled packet (%s) recieved!\n" % (message.asString())
-            raise RobotDeviceManagerError(err) 
+        # If there is no destination device specified, send it to dummy
+        if message.destination_device == "":
+            message.destination_device = "dummy"
 
-    def shutDown(self):
+        try:
+            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message)
+        except KeyError:
+            err = "device {:s} not loaded.".format(message.destination_device)
+            self.output_queue.put(destination_device="warn",message=err)
+       
+    def shutdown(self):
         """
         """
 
         for d in self.loaded_devices:
-            d.shutDown()
+            d.shutdown()
 
     def run(self):
 
@@ -123,12 +129,21 @@ class DeviceManager(multiprocessing.Process):
                 if type(message) == str:
 
                     m = RobotMessage()
-                    m.loadMessageFromString(message)
+
+                    # fromString only returns something if the input message was
+                    # mangled.  If it's mangled, put the output -- which is a 
+                    # RobotMessage instance warning of the mangling -- back into
+                    # the queue.
+                    status = m.fromString(message)
+                    if status != None:
+                        self.output_queue.put(status)
+                        continue
+
                     message = copy(m)
              
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
-                if message.checkMessageTimestamp() == True:
+                if message.checkDelay() == True:
                     self.sendMessageToDevice(message)
                 else:
                     self.input_queue.put(message)
@@ -137,7 +152,7 @@ class DeviceManager(multiprocessing.Process):
             # output ready.  Route this output to the appropriate queue. 
             for d in self.loaded_devices:
 
-                device_output = d.getData()
+                device_output = d.get()
 
                 for o in device_output:
                     if o.destination == "robot":

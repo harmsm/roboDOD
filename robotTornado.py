@@ -64,7 +64,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         # Send connection notice to client
         self.write_message(RobotMessage(destination="controller",
-                                        device_name="info",
                                         message=info_string).asString())
 
         # Turn on the status light indicating that we're connected.
@@ -76,10 +75,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         """
 
         if self.verbose:
-            info_string = "Tornado recieved \"%s\" from client." % message
+            info_string = "Tornado recieved \"{:s}\" from client.".format(message)
             self.writeLog(info_string)
             self.write_message(RobotMessage(destination="controller",
-                                            device_name="info",
                                             message=info_string).asString())
 
         q = self.application.settings.get('queue')
@@ -98,8 +96,8 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         # Turn off the status light indicating that we're connected.
         q = self.application.settings.get('queue')
         q.put(RobotMessage(destination="robot",
-                           device_name="client_connected_light",
-                            message="off").asString())
+                           destination_device="client_connected_light",
+                           message="off").asString())
 
         clients.remove(self)
 
@@ -108,15 +106,15 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         Write an entry to the log file
         """
 
-        self.local_log.write("%s %s\n" % (str(datetime.datetime.now()),
-                                          string))
+        self.local_log.write("{:s} {:s}\n".format(str(datetime.datetime.now()),
+                                                  string))
         self.local_log.flush() 
 
  
 def main(argv=None):
     
     def signal_handler(signal, frame):
-        dm.shutDown()
+        dm.shutdown()
 
         # This is a hack... this should go in low level
         import RPi.GPIO as GPIO
@@ -138,7 +136,8 @@ def main(argv=None):
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put(RobotMessage(device_name="info",
+    dm.input_queue.put(RobotMessage(destination="robot",
+                                    destination_device="dummy",
                                     message="initializing"))
 
     # Initailize handler 
@@ -160,10 +159,10 @@ def main(argv=None):
 
     # Indicate that robot is ready to listen
     dm.input_queue.put(RobotMessage(destination="robot",
-                                    device_name="info",
+                                    destination_device="dummy",
                                     message="Listening on port: {:d}".format(options.port)))
     dm.input_queue.put(RobotMessage(destination="robot",
-                                    device_name="system_up_light",
+                                    destination_device="system_up_light",
                                     message="on"))
  
     def checkResults():
@@ -173,7 +172,7 @@ def main(argv=None):
 
         if not dm.output_queue.empty():
             m = dm.output_queue.get()
-            if m.checkMessageTimestamp() == True:
+            if m.checkDelay() == True:
                 for c in clients:
                     c.write_message(m.asString())
             else:
