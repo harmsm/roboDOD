@@ -123,7 +123,7 @@ class DeviceManager(multiprocessing.Process):
             if not self.input_queue.empty():
 
                 message = self.input_queue.get()
-
+    
                 # If this is a raw message string, convert it to an InternalMessage
                 # instance 
                 if type(message) == str:
@@ -140,7 +140,7 @@ class DeviceManager(multiprocessing.Process):
                         continue
 
                     message = copy(m)
-           
+ 
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
                 if message.checkDelay() == True:
@@ -159,5 +159,3 @@ class DeviceManager(multiprocessing.Process):
                         self.input_queue.put(o)
                     else:
                         self.output_queue.put(o)
-
-

@@ -19,6 +19,11 @@ a string command of the form:
 parses it and sends it to _control_dict:
 
     self._control_dict[key](**kwargs)
+
+When writing methods, all functions should access self._messages via the 
+self._append_message and self._get_messages methods, as these use a re-enterant
+thread lock to stay thread-safe.  This is critical because the tornado server
+and device manager are on different threads but can both post messages.
 """ 
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
@@ -26,7 +31,7 @@ __date__ = "2014-06-18"
 from random import random
 from lowLevel import *
 from robotMessages import *
-import time, multiprocessing
+import time, threading
 
 class RobotDevice:
     """
@@ -47,6 +52,7 @@ class RobotDevice:
         self._control_dict = {}
         self._manager = None
 
+        self._lock = threading.RLock()
         self._messages = []
 
     def connectManager(self,manager):
@@ -79,14 +85,8 @@ class RobotDevice:
         manager.
         """
 
-        # If the list of messages is not empty
-        if len(self._messages) > 0:
-            m = self._messages[:]
-            self._messages = []
-
-            return m
-
-        return []
+        return self._get_all_messages()
+    
 
     def put(self,command):
         """
@@ -111,25 +111,25 @@ class RobotDevice:
                     self._control_dict[function_key](**kwargs)
                 except:
                     err = "Mangled command ({:s})".format(command)
-                    self._messages.append(RobotMessage(destination_device="warn",
-                                                       source_device=self.name,
-                                                       message=err))
+                    self._append_message(RobotMessage(destination_device="warn",
+                                                      source_device=self.name,
+                                                      message=err))
 
             # No kwargs specified         
             else:
                 self._control_dict[function_key]()
 
             # Send the message we just processed back to the controller.
-            self._messages.append(RobotMessage(source_device=self.name,
-                                               message=command))
+            self._append_message(RobotMessage(source_device=self.name,
+                                              message=command))
 
         # Problem somewhere.
         except:
             err = "Command {:s} incorrect for {:s}".format(command,
                                                            self.__class__.__name__)
-            self._messages.append(RobotMessage(destination_device="warn",
-                                               source_device=self.name,
-                                               message=err))
+            self._append_message(RobotMessage(destination_device="warn",
+                                              source_device=self.name,
+                                              message=err))
  
     def getNow(self,command):
         """
@@ -145,6 +145,27 @@ class RobotDevice:
 
         pass
 
+    def _append_message(self,msg):
+        """
+        Append to self._messages in a thread-safe manner.
+        """
+
+        with self._lock:
+            self._messages.append(msg)
+
+    def _get_all_messages(self):
+        """
+        Get all self._messages (wiping out existing) in a thread-safe manner.
+        """
+
+        with self._lock:
+
+            m = []
+            if len(self._messages) > 0:
+                m = self._messages[:]
+                self._messages = []
+
+            return m
 
 class DummyDevice(RobotDevice):
     """
@@ -154,15 +175,7 @@ class DummyDevice(RobotDevice):
 
     def __init__(self,name=None):
 
-        # Give the devivce a unique name
-        if name != None:
-            self.name = name
-        else:
-            self.name = "{:s}{:d}".format(self.__class__.__name__,int(random()*100000))
-
-        self._control_dict = {}
-        self._manager = None
-        self._messages = []
+        RobotDevice.__init__(self,name)
 
     def put(self,command):
         """
@@ -170,8 +183,8 @@ class DummyDevice(RobotDevice):
         device manager.
         """
 
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           message=command))
+        self._append_message(RobotMessage(source_device=self.name,
+                                          message=command))
 
 class GPIOMotor(RobotDevice):
     """
@@ -254,13 +267,13 @@ class TwoMotorDriveSteer(RobotDevice):
         self._right_return_constant = right_return_constant
 
     def _steerLeft(self):
-        
-        self._current_steer_motor_state = -1
+       
+        with self._lock: self._current_steer_motor_state = -1
         self._steer_motor.forward()
 
     def _steerRight(self):
         
-        self._current_steer_motor_state = 1
+        with self._lock: self._current_steer_motor_state = 1
         self._steer_motor.reverse()
 
     def _steerCenter(self):
@@ -280,7 +293,7 @@ class TwoMotorDriveSteer(RobotDevice):
             self._steer_motor.coast()
 
         self._steer_motor.coast()
-        self._current_steer_motor_state = 0
+        with self._lock: self._current_steer_motor_state = 0
 
     def shutdown(self):
         
@@ -373,19 +386,19 @@ class TwoMotorCatSteer(RobotDevice):
         if speed > self._max_speed or speed < 0:
             err = "speed {:.3f} is invalid".format(speed)
 
-            self._messages.append(RobotMessage(destination_device="warn",
-                                               source_device=self.name,
-                                               message=err))
+            self._append_message(RobotMessage(destination_device="warn",
+                                              source_device=self.name,
+                                              message=err))
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
-            self._messages.append(RobotMessage(destination="robot",
-                                               destination_device=self.name,
-                                               source="robot",
-                                               source_device=self.name,
-                                               message="setspeed~{\"speed\":0}"))
+            self._append_message(RobotMessage(destination="robot",
+                                              destination_device=self.name,
+                                              source="robot",
+                                              source_device=self.name,
+                                              message="setspeed~{\"speed\":0}"))
         else:
-            self._speed = speed
+            with self._lock: self._speed = speed
 
         self._left_motor.setPWMDutyCycle(self._speed*self._speed_constant)
         self._right_motor.setPWMDutyCycle(self._speed*self._speed_constant)
@@ -433,12 +446,12 @@ class LEDIndicatorLight(RobotDevice):
         # Allows the client to turn on the LED for a fixed number of
         # seconds by adding a "turn off" message to the output queue.  This is
         # basically a "note to self: turn off the LED after delay time seconds"
-        self._messages.append(RobotMessage(destination="robot",
-                                           destination_device=self.name,
-                                           source="robot",
-                                           source_device=self.name,
-                                           delay_time=seconds_to_flash*1000,
-                                           message="off"))
+        self._append_message(RobotMessage(destination="robot",
+                                          destination_device=self.name,
+                                          source="robot",
+                                          source_device=self.name,
+                                          delay_time=seconds_to_flash*1000,
+                                          message="off"))
        
  
     def shutdown(self):
@@ -473,14 +486,14 @@ class RangeFinder(RobotDevice):
         Measure the range.
         """
 
-        self._range_value = self._range_finder.getRange()
+        with self._lock: self._range_value = self._range_finder.getRange()
         if (self._range_value < 0):
-            self._message.append(RobotMessage(destination_device="warn",
+            self._append_message(RobotMessage(destination_device="warn",
                                               source_device=self.name,
                                               message="range finder timed out"))
         else:
-            self._messages.append(RobotMessage(source_device=self.name,
-                                               message="{:.12f}".format(self._range_value)))
+            self._append_message(RobotMessage(source_device=self.name,
+                                              message="{:.12f}".format(self._range_value)))
 
     def getNow(self):
         """

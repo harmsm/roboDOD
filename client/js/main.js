@@ -36,7 +36,6 @@ function RobotMessage(options){
                 delay              : parseFloat(options.delay),
                 message            : options.message,
 
-                minimum_time       : this.arrival_time + this.delay,
 
                 /* Method: return the message in proper string format */
                 asString : function(){
@@ -74,6 +73,8 @@ function RobotMessage(options){
                     }
 
                 },
+                
+                minimum_time       : this.arrival_time + this.delay,
 
                 };
 
@@ -126,7 +127,7 @@ function sendMessage(socket,message,allow_repeat){
 
     /* Send a message.  
       
-       socket: currently connected socke instance
+       socket: currently connected socket instance
        message: RobotMessage instance
        allow_repeat: bool that says whether we can pass same message twice in 
                      a row.
@@ -135,16 +136,10 @@ function sendMessage(socket,message,allow_repeat){
     /* By default, allow repeats */
     allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
 
-    /* If this is a message to self, send it back to self! */
+    /* If this is a message to self, send it back to self */
     if (message.destination == "controller"){
         recieveMessage(socket,message);
-        return;
-    }
-
-    /* Otherwise, send it out to the robot */
-
-    /* Wait until the state of the socket is ready and send message */
-    waitForSocketConnection(socket, function(){
+    } else { 
 
         /* Log the message to the terminal */ 
         terminalLogger(message);
@@ -154,12 +149,17 @@ function sendMessage(socket,message,allow_repeat){
 
         /* Send the message */
         if (($("#last-sent-message").html() != message_string) || (allow_repeat == true)){
-            socket.send(message_string);
 
-            /* update the last message sent */
-            $("#last-sent-message").html(message_string);
+            /* Wait until the state of the socket is ready and send message */
+            waitForSocketConnection(socket, function(){
+
+                socket.send(message_string);
+
+                /* update the last message sent */
+                $("#last-sent-message").html(message_string);
+            });
         }
-    });
+    }
 
 }
 
@@ -204,7 +204,7 @@ function main(){
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
             sendMessage(socket,RobotMessage({destination_device:"forward_range",
-                                                 message:"get"}));
+                                             message:"get"}));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     /* Or complain...  */
@@ -221,7 +221,7 @@ function terminalLogger(msg){
     /* Log commands in the user interface terminal */
     
     /* write to broswer console for debugging purposes */ 
-    console.log(msg.asString());
+    console.log(msg);   //.asString());
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){

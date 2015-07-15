@@ -16,10 +16,10 @@ class RobotMessage:
 
     def __init__(self,destination="controller",destination_device="",
                       source="robot",source_device="",
-                      delay_time=0,message=""):
+                      delay_time=0.0,message=""):
 
         # arrival time (in ms)
-        self.arrival_time = time.time()*1000
+        self.arrival_time = int(time.time()*1000)
 
         self.destination = destination
         self.destination_device = destination_device
@@ -36,6 +36,7 @@ class RobotMessage:
         """
 
         message_array = message_string.split("|")
+        self.arrival_time = int(time.time()*1000)
 
         try:
 
@@ -47,7 +48,7 @@ class RobotMessage:
             self.source = src.split(".")[0] 
             self.source_device = src.split(".")[1] 
 
-            self.delay_time = float(message_array[2])
+            self.delay_time = int(message_array[2])
             self.message = "|".join(message_array[3:])
 
         except:
@@ -62,12 +63,15 @@ class RobotMessage:
         Convert a message instance to a string.
         """
 
+
         out = "{:s}.{:s}|{:s}.{:s}|{:.3f}|{:s}".format(self.destination,
                                                        self.destination_device,
                                                        self.source,
                                                        self.source_device,
                                                        self.delay_time,
                                                        self.message)
+
+        print(out)
 
         return out
 
@@ -76,7 +80,7 @@ class RobotMessage:
         See if a message is ready to send given its time stamp.
         """
 
-        if 1000*time.time() > self.minimum_time:
+        if int(1000*time.time()) > self.minimum_time:
             return True
 
         return False

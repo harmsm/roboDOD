@@ -1,10 +1,11 @@
 __description__ = \
 """
 Low level hardware interfaces to devices plugged into the GPIO pins on the pi.
+Should be thread-safe.
 """
 
 import RPi.GPIO as GPIO
-import time
+import time, threading
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -27,50 +28,60 @@ class GPIOMotor:
         self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
         self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
 
+        self._lock = threading.RLock()
+
         self.coast()
 
     def forward(self):
 
-        self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
-        self.pin1_pwm.start(self.duty_cycle)
-        self.pin2_pwm.stop()
+        with self._lock:
+            self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
+            self.pin1_pwm.start(self.duty_cycle)
+            self.pin2_pwm.stop()
 
     def reverse(self):
-        self.pin1_pwm.stop()
-        self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
-        self.pin2_pwm.start(self.duty_cycle)
+        
+        with self._lock:
+            self.pin1_pwm.stop()
+            self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
+            self.pin2_pwm.start(self.duty_cycle)
 
     def stop(self):
 
-        self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
-        self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
-        self.pin1_pwm.start(self.duty_cycle)
-        self.pin2_pwm.start(self.duty_cycle)
+        with self._lock:
+            self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
+            self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
+            self.pin1_pwm.start(self.duty_cycle)
+            self.pin2_pwm.start(self.duty_cycle)
    
     def coast(self):
 
-        self.pin1_pwm.stop()
-        self.pin2_pwm.stop()
+        with self._lock:
+            self.pin1_pwm.stop()
+            self.pin2_pwm.stop()
 
     def setPWMDutyCycle(self,duty_cycle):
 
-        self.duty_cycle = duty_cycle
+        with self._lock:
+            self.duty_cycle = duty_cycle
 
-        self.pin1_pwm.ChangeDutyCycle(self.duty_cycle)
-        self.pin2_pwm.ChangeDutyCycle(self.duty_cycle)
+            self.pin1_pwm.ChangeDutyCycle(self.duty_cycle)
+            self.pin2_pwm.ChangeDutyCycle(self.duty_cycle)
     
     def setPWMFrequency(self,frequency):
 
-        self.frequency = frequency
+        with self._lock:
+            self.frequency = frequency
 
-        self.pin1_pwm.ChangeFrequency(self.frequency)
-        self.pin2_pwm.ChangeFrequency(self.frequency)
+            self.pin1_pwm.ChangeFrequency(self.frequency)
+            self.pin2_pwm.ChangeFrequency(self.frequency)
 
     def shutdown(self):
-       
-        self.coast() 
-        self.pin1_pwm.stop()
-        self.pin2_pwm.stop()
+      
+        with self._lock: 
+            self.coast() 
+            self.pin1_pwm.stop()
+            self.pin2_pwm.stop()
 
 class GPIOLED:
     """
@@ -91,40 +102,48 @@ class GPIOLED:
 
         self.led_on = False
 
+        self._lock = threading.RLock()
+
     def on(self):
 
-        self.pwm = GPIO.PWM(self.pin,self.frequency)
-        self.pwm.start(self.duty_cycle) 
-        self.led_on = True
+        with self._lock:
+            self.pwm = GPIO.PWM(self.pin,self.frequency)
+            self.pwm.start(self.duty_cycle) 
+            self.led_on = True
     
 
     def off(self):
         
-        self.pwm.stop()
-        self.led_on = False
+        with self._lock:
+            self.pwm.stop()
+            self.led_on = False
    
     def flip(self):
     
-        if self.led_on:
-            self.off()
-        else:
-            self.on()
+        with self._lock:
+            if self.led_on:
+                self.off()
+            else:
+                self.on()
 
     def setPWMFrequency(self,frequency):
 
-        self.frequency = frequency
-        self.pwm.ChangeFrequency(self.frequency)
+        with self._lock:
+            self.frequency = frequency
+            self.pwm.ChangeFrequency(self.frequency)
  
 
     def setPWMDutyCycle(self,duty_cycle):
 
-        self.duty_cycle = duty_cycle
-        self.pwm.ChangeDutyCycle(self.duty_cycle)
+        with self._lock:
+            self.duty_cycle = duty_cycle
+            self.pwm.ChangeDutyCycle(self.duty_cycle)
         
     def shutdown():
 
-        self.off()
-        self.pwm.stop()
+        with self._lock:
+            self.off()
+            self.pwm.stop()
  
 class UltrasonicRange:
     """
@@ -138,6 +157,8 @@ class UltrasonicRange:
         self.echo_pin = echo_pin
         self.timeout = timeout
 
+        self._lock = threading.RLock()
+
         # Set pins as output and input
         GPIO.setup(self.trigger_pin,GPIO.OUT,initial=False)  # Trigger
         GPIO.setup(self.echo_pin,GPIO.IN,initial=False)      # Echo
@@ -146,6 +167,15 @@ class UltrasonicRange:
         time.sleep(0.5)
 
     def getRange(self):
+        """
+        Thread-safe wrapper for _getRange
+        """
+
+        with self._lock:
+            return self._getRange()
+            
+
+    def _getRange(self):
         """
         Calculate the distance to a target based on the length of the return
         echo. Returns a negative value of the system times out.

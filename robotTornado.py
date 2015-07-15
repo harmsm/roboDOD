@@ -66,8 +66,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.write_message(RobotMessage(destination="controller",
                                         message=info_string).asString())
 
-        # Turn on the status light indicating that we're connected.
-        q = self.application.settings.get('queue')
+        self.q = self.application.settings.get('queue')
  
     def on_message(self, message):
         """
@@ -80,9 +79,14 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(RobotMessage(destination="controller",
                                             message=info_string).asString())
 
-        q = self.application.settings.get('queue')
-        q.put(message)
- 
+        print("HERE",message)
+
+        m = RobotMessage()
+        m.fromString(message) 
+        self.q.put(m)
+
+        print(self.q.qsize())
+
     def on_close(self):
         """
         When the socket connection is closed, dump the client and write to the
@@ -94,10 +98,9 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self.local_log.close()
         
         # Turn off the status light indicating that we're connected.
-        q = self.application.settings.get('queue')
-        q.put(RobotMessage(destination="robot",
-                           destination_device="client_connected_light",
-                           message="off").asString())
+        self.q.put(RobotMessage(destination="robot",
+                                destination_device="client_connected_light",
+                                message="off").asString())
 
         clients.remove(self)
 
