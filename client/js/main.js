@@ -179,6 +179,7 @@ function main(){
     var host = "ws://" + url + "/ws";
     socket = new WebSocket(host);
 
+
     /* If we connect take command of the robot. */
     if(socket) {
 
@@ -336,6 +337,10 @@ function parseDrivetrainMessage(msg){
 
         var current_speed = msg.message.split("~")[1].split(":")[1].split("}")[0];
 
+        // new UI update
+        $("#actualspeed").html(current_seped);
+        $("#speedometer").toggleClass("speed-in-sync",true);
+
         // Update user interface
         $(".btn-current-speed").toggleClass("btn-default",true)
                                .toggleClass("btn-success",false)
@@ -473,7 +478,13 @@ function socketListener(socket){
         $("#steer_coast_button").click(function(){
             setSteer("coast",socket);
         });
-   
+
+        /* New speed */
+        $("#setspeed")[0].noUiSlider.on('change',function(){
+            $("#speedometer").toggleClass("speed-in-sync",false);
+            setSpeed($("#setspeed")[0].noUiSlider.get(),socket);
+        });
+
         /* Speed */
         $("#speed_0_button").click(function(){
             setSpeed(0,socket);

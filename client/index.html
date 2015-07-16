@@ -69,6 +69,22 @@
                 </div>
             </div>
 
+            <div class="well well-sm">
+                <div class="row speed-row vertical-align">
+                    <div class="col-xs-2 col-sm-2" align="right">Speed:</div>
+
+                    <div class="col-xs-8 col-sm-8">
+                        <div class="slider" id="setspeed"></div>
+                    </div>
+
+                    <div class="col-xs-2 col-sm-2">
+                        <div class="panel panel-sm speedometer-panel" id="speedometer">
+                            <h2 style="padding:0px; margin-bottom: 0px; margin-top: 0px;" align="center"><span id="actualspeed">0</span></h2>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
             <span><p></p></span>
 
             <div class="row">
@@ -101,7 +117,16 @@
 
     <script type="text/javascript" src="js/jquery-2.1.1.min.js"></script>
     <script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script src="js/nouislider.min.js"></script>
+    <script>
+        noUiSlider.create($("#setspeed")[0],{start: 0,
+                                             step: 1,
+                                             range: {'min': 0,'max': 5}}
+                         );
+    </script>
+
     <script type="text/javascript" src="js/main.js"></script>
+    
 
 </div>
 
