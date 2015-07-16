@@ -309,7 +309,7 @@ class TwoMotorCatSteer(RobotDevice):
  
     def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
                  pwm_frequency=100,pwm_duty_cycle=100,name=None,speed=0,
-                 max_speed=4):
+                 max_speed=5):
         """
         Initialize the motors.
     

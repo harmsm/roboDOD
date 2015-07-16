@@ -338,17 +338,19 @@ function parseDrivetrainMessage(msg){
         var current_speed = msg.message.split("~")[1].split(":")[1].split("}")[0];
 
         // new UI update
-        $("#actualspeed").html(current_seped);
+        $("#actualspeed").html(Math.round(current_speed));
         $("#speedometer").toggleClass("speed-in-sync",true);
 
         // Update user interface
+        /*
         $(".btn-current-speed").toggleClass("btn-default",true)
                                .toggleClass("btn-success",false)
                                .toggleClass("btn-current-speed",false);
         $("#speed_" + current_speed + "_button").toggleClass("btn-current-speed",true)
                                                 .toggleClass("btn-success",true)
                                                 .toggleClass("btn-default",false);
-    
+        */   
+ 
     /* Otherwise, update steering interface */ 
     } else { 
     
@@ -485,7 +487,7 @@ function socketListener(socket){
             setSpeed($("#setspeed")[0].noUiSlider.get(),socket);
         });
 
-        /* Speed */
+        /* Speed 
         $("#speed_0_button").click(function(){
             setSpeed(0,socket);
         });
@@ -500,7 +502,7 @@ function socketListener(socket){
         });
         $("#speed_4_button").click(function(){
             setSpeed(4,socket);
-        });
+        }); */
         
         /* Flash button */ 
         $("#attention_light_button").click(function(){

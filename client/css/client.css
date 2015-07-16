@@ -41,10 +41,40 @@
 }
 
 .to-robot-msg { 
-    color: Green;
+    color: green;
 }
 
 .warn-msg {
     color: DarkOrange;
-    /*font-weight: bold;*/
+}
+
+.vertical-align {
+    display: flex;
+    flex-direction: row;
+    min-height:100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.speedometer-panel {
+    color:white;
+    background:gray;
+
+    margin-top:0px;
+    margin-bottom:0px;
+    padding:0px;
+
+    display: flex; 
+    flex-flow: column wrap;
+    min-height:100%;
+
+}
+
+.speed-in-sync {
+    color:white;
+    background:green;
+}
+
+.btn-success {
+    background:green;
 }
