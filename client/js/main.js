@@ -154,6 +154,7 @@ function sendMessage(socket,message,allow_repeat){
             waitForSocketConnection(socket, function(){
 
                 socket.send(message_string);
+                socket.send(RobotMessage({"device":"dummy"}).asString());
 
                 /* update the last message sent */
                 $("#last-sent-message").html(message_string);

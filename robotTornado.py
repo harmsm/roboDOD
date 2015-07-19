@@ -19,7 +19,7 @@ import tornado.websocket
 import tornado.gen
 from tornado.options import define, options
 
-import datetime, time, sys, signal
+import datetime, time, sys, signal, logging
 import multiprocessing
 
 import robotConfiguration
@@ -79,13 +79,12 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(RobotMessage(destination="controller",
                                             message=info_string).asString())
 
-        print("HERE",message)
-
         m = RobotMessage()
         m.fromString(message) 
         self.q.put(m)
 
-        print(self.q.qsize())
+        if self.verbose:
+            self.writeLog("Queue size: {:d}\n".format(self.q.qsize()))
 
     def on_close(self):
         """
@@ -129,13 +128,15 @@ def main(argv=None):
 
     if argv == None:
         argv = sys.argv[1:]
+
+    mpl = multiprocessing.log_to_stderr()
+    mpl.setLevel(logging.DEBUG)
  
-    input_queue = multiprocessing.Queue()
-    output_queue = multiprocessing.Queue()
- 
-    dm = DeviceManager(input_queue,output_queue,robotConfiguration.device_list)
-    dm.daemon = True
+    #dm = DeviceManager(input_queue,output_queue,robotConfiguration.device_list)
+    dm = DeviceManager(robotConfiguration.device_list)
+    #dm.daemon = True
     dm.start()
+    #dm.join()
  
     # wait a second before sending first task
     time.sleep(1)

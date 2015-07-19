@@ -71,8 +71,6 @@ class RobotMessage:
                                                        self.delay_time,
                                                        self.message)
 
-        print(out)
-
         return out
 
     def checkDelay(self):

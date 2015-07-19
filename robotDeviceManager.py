@@ -26,15 +26,15 @@ class DeviceManager(multiprocessing.Process):
     and output_queues. 
     """
  
-    def __init__(self,input_queue,output_queue,device_list=[],sample_interval=1000):
+    def __init__(self,device_list=[],poll_interval=0.01):
         """
         
         """
-
+    
         multiprocessing.Process.__init__(self)
 
-        self.input_queue = input_queue
-        self.output_queue = output_queue
+        self.input_queue = multiprocessing.Queue()
+        self.output_queue = multiprocessing.Queue()
         self.loaded_devices = []
         self.loaded_devices_dict = {}
 
@@ -45,19 +45,20 @@ class DeviceManager(multiprocessing.Process):
         # device
         self.loadDevice(DummyDevice(name="dummy"))
 
-        self.sample_interval = sample_interval
+        self.poll_interval = poll_interval
     
     def loadDevice(self,d):
         """
         Load a device into the DeviceManager.
         """
 
-        # load the device.  connectManager will return None unless there is
+        # load the device. d.connectManager will return None unless there is
         # a problem.        
         status = d.connectManager(self.__class__.__name__)
         if status != None:
             err = RobotMessage(destination_device="warn",
                                message=status)
+            self.output_queue.put(err)
         else:
             self.loaded_devices.append(d)
             if d.name in list(self.loaded_devices_dict.keys()):
@@ -105,7 +106,7 @@ class DeviceManager(multiprocessing.Process):
             self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message)
         except KeyError:
             err = "device {:s} not loaded.".format(message.destination_device)
-            self.output_queue.put(destination_device="warn",message=err)
+            self.output_queue.put(RobotMessage(destination_device="warn",message=err))
        
     def shutdown(self):
         """
@@ -116,7 +117,12 @@ class DeviceManager(multiprocessing.Process):
 
     def run(self):
 
-        while True:
+        #import cProfile, pstats, io
+        #pr = cProfile.Profile()
+        #pr.enable()
+        #counter = 0
+
+        while True: # and counter < 1000:
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device
@@ -159,3 +165,7 @@ class DeviceManager(multiprocessing.Process):
                         self.input_queue.put(o)
                     else:
                         self.output_queue.put(o)
+
+            # Wait poll_interval seconds before checking queues again
+            time.sleep(self.poll_interval)
+
