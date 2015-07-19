@@ -44,7 +44,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         tornado.websocket.WebSocketHandler.__init__(self,*args,**kwargs)
 
-        self.verbose = False
+        self.verbose = True 
         self.logfile = "tornado-controller.log"
         self.local_log = open(self.logfile,'a')
 

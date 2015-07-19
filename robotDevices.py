@@ -123,13 +123,17 @@ class RobotDevice:
             self._append_message(RobotMessage(source_device=self.name,
                                               message=command))
 
+
         # Problem somewhere.
         except:
-            err = "Command {:s} incorrect for {:s}".format(command,
-                                                           self.__class__.__name__)
+            err = "Command {:s} failed for {:s}. Trying again.".format(command,
+                                                                       self.__class__.__name__)
             self._append_message(RobotMessage(destination_device="warn",
                                               source_device=self.name,
                                               message=err))
+            self._append_message(RobotMessage(destination="robot",
+                                              destination_device=self.name,
+                                              message=command))
  
     def getNow(self,command):
         """

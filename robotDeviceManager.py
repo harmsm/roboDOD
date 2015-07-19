@@ -26,7 +26,7 @@ class DeviceManager(multiprocessing.Process):
     and output_queues. 
     """
  
-    def __init__(self,device_list=[],poll_interval=0.01):
+    def __init__(self,device_list=[],poll_interval=0.1):
         """
         
         """
@@ -117,12 +117,7 @@ class DeviceManager(multiprocessing.Process):
 
     def run(self):
 
-        #import cProfile, pstats, io
-        #pr = cProfile.Profile()
-        #pr.enable()
-        #counter = 0
-
-        while True: # and counter < 1000:
+        while True: 
 
             # Look for incoming user interface request(s) and pipe them to
             # appropriate device

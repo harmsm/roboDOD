@@ -5,7 +5,7 @@ Should be thread-safe.
 """
 
 import RPi.GPIO as GPIO
-import time
+import time, threading
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(10)
@@ -29,9 +29,20 @@ class GPIOMotor:
         self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
         self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
 
+        self._lock = threading.RLock()   
+
+        self._current_state = None
         self.coast()
 
     def forward(self):
+
+        with self._lock:
+            if self._current_state == self.forward:
+                return
+            self._current_state = self.forward
+
+        self.pin1_pwm.stop()
+        self.pin2_pwm.stop()
 
         self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
         self.pin1_pwm.start(self.duty_cycle)
@@ -39,11 +50,27 @@ class GPIOMotor:
 
     def reverse(self):
         
+        with self._lock:
+            if self._current_state == self.reverse:
+                return
+            self._current_state = self.reverse
+
+        self.pin1_pwm.stop()
+        self.pin2_pwm.stop()
+
         self.pin1_pwm.stop()
         self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
         self.pin2_pwm.start(self.duty_cycle)
 
     def stop(self):
+        
+        with self._lock:
+            if self._current_state == self.stop:
+                return
+            self._current_state = self.stop
+
+        self.pin1_pwm.stop()
+        self.pin2_pwm.stop()
 
         self.pin1_pwm = GPIO.PWM(self.pin1,self.frequency)
         self.pin2_pwm = GPIO.PWM(self.pin2,self.frequency)
@@ -52,6 +79,11 @@ class GPIOMotor:
    
     def coast(self):
 
+        with self._lock:
+            if self._current_state == self.coast:
+                return
+            self._current_state = self.coast
+
         self.pin1_pwm.stop()
         self.pin2_pwm.stop()
 
@@ -59,16 +91,18 @@ class GPIOMotor:
 
         self.duty_cycle = duty_cycle
 
+        # change the duty cycles
         self.pin1_pwm.ChangeDutyCycle(self.duty_cycle)
         self.pin2_pwm.ChangeDutyCycle(self.duty_cycle)
-    
+
     def setPWMFrequency(self,frequency):
 
         self.frequency = frequency
-
+        
+        # change the frequencies
         self.pin1_pwm.ChangeFrequency(self.frequency)
         self.pin2_pwm.ChangeFrequency(self.frequency)
-
+        
     def shutdown(self):
       
         self.coast() 
@@ -90,16 +124,29 @@ class GPIOLED:
         self.pwm = GPIO.PWM(self.pin,self.frequency)
         self.pwm.stop()
 
+        self._lock = threading.RLock()
+        self._current_state = None
+
         self.led_on = False
 
     def on(self):
 
+        with self._lock:
+            if self._current_state == self.on:
+                return
+            self._current_state = self.on
+
+        self.pwm.stop()
         self.pwm = GPIO.PWM(self.pin,self.frequency)
         self.pwm.start(self.duty_cycle) 
         self.led_on = True
-    
 
     def off(self):
+
+        with self._lock:
+            if self._current_state == self.off:
+                return
+            self._current_state = self.off
         
         self.pwm.stop()
         self.led_on = False
@@ -115,7 +162,6 @@ class GPIOLED:
 
         self.frequency = frequency
         self.pwm.ChangeFrequency(self.frequency)
- 
 
     def setPWMDutyCycle(self,duty_cycle):
 
