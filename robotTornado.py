@@ -44,7 +44,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         tornado.websocket.WebSocketHandler.__init__(self,*args,**kwargs)
 
-        self.verbose = True 
+        self.verbose = False
         self.logfile = "tornado-controller.log"
         self.local_log = open(self.logfile,'a')
 
@@ -132,11 +132,8 @@ def main(argv=None):
     mpl = multiprocessing.log_to_stderr()
     mpl.setLevel(logging.DEBUG)
  
-    #dm = DeviceManager(input_queue,output_queue,robotConfiguration.device_list)
     dm = DeviceManager(robotConfiguration.device_list)
-    #dm.daemon = True
     dm.start()
-    #dm.join()
  
     # wait a second before sending first task
     time.sleep(1)

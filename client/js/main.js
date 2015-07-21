@@ -39,28 +39,27 @@ function RobotMessage(options){
 
                 /* Method: return the message in proper string format */
                 asString : function(){
-                    return this.destination + "." + this.destination_device + "|" +
-                           this.source      + "." + this.source_device      + "|" + 
-                           this.delay + "|" + this.message;
+
+                    return JSON.stringify(this);
+
                 },
 
                 /* Method: build a RobotMessage from a string */
                 fromString : function(message_string){
-            
-                    var message_array = message_string.split("|");
 
                     this.arrival_time = new Date().getTime();
+                    var raw_msg = JSON.parse(message_string);
+                    for (var key in raw_msg){
+                        this[key] = raw_msg[key];
+                    };
 
-                    this.destination = message_array[0].split(".")[0];
-                    this.destination_device = message_array[0].split(".")[1];
-
-                    this.source = message_array[1].split(".")[0];
-                    this.source_device = message_array[1].split(".")[1];
-
-                    this.delay = parseFloat(message_array[2]);
-                    this.message = (message_array.slice(3)).join("|");
+                    if (isNaN(this.delay)){
+                        this.delay = 0;
+                        console.log("setting minimum time to 0...mangled delay? (",this.delay,")");
+                    }
 
                     this.minimum_time = this.arrival_time + this.delay;
+
                 },
 
                 /* Method: see if delay condition is met */
@@ -154,7 +153,6 @@ function sendMessage(socket,message,allow_repeat){
             waitForSocketConnection(socket, function(){
 
                 socket.send(message_string);
-                socket.send(RobotMessage({"device":"dummy"}).asString());
 
                 /* update the last message sent */
                 $("#last-sent-message").html(message_string);
@@ -223,7 +221,7 @@ function terminalLogger(msg){
     /* Log commands in the user interface terminal */
     
     /* write to broswer console for debugging purposes */ 
-    console.log(msg);   //.asString());
+    //console.log(msg);
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
@@ -258,7 +256,7 @@ function terminalLogger(msg){
     $("#terminal").append($("<span></span>").addClass(this_class)
                                             .text(identifier + " " +
                                                   device + ": " +
-                                                  msg.message)
+                                                  JSON.stringify(msg.message))
                                             .append("<br/>")
                        );
 
@@ -333,25 +331,17 @@ function parseDrivetrainMessage(msg){
 
     /* Update user interface with messages from robot about current speed */
 
+    if (msg.destination_device == "warn"){ return; }
+
     /* If message is about setting speed, update interface with speed */
-    if (msg.message.split("~")[0] == "setspeed"){
+    if (msg.message[0] == "setspeed"){
 
-        var current_speed = msg.message.split("~")[1].split(":")[1].split("}")[0];
+        var current_speed = msg.message[1].speed;
 
-        // new UI update
+        // Update user interface
         $("#actualspeed").html(Math.round(current_speed));
         $("#speedometer").toggleClass("speed-in-sync",true);
 
-        // Update user interface
-        /*
-        $(".btn-current-speed").toggleClass("btn-default",true)
-                               .toggleClass("btn-success",false)
-                               .toggleClass("btn-current-speed",false);
-        $("#speed_" + current_speed + "_button").toggleClass("btn-current-speed",true)
-                                                .toggleClass("btn-success",true)
-                                                .toggleClass("btn-default",false);
-        */   
- 
     /* Otherwise, update steering interface */ 
     } else { 
     
@@ -438,9 +428,9 @@ function setSpeed(speed,socket){
     /* Set the current speed for the robot */
 
     // Tell the robot what to do.
-    sendMessage(socket,RobotMessage({destination_device:"drivetrain",
-                                     message:"setspeed~{\"speed\":"+speed+"}"}));
 
+    sendMessage(socket,RobotMessage({destination_device:"drivetrain",
+                                     message:["setspeed",{"speed":Number(speed)}]}));
 }
 
 function setAttentionLight(socket){

@@ -99,15 +99,13 @@ class RobotDevice:
             self._control_dict[key_for_control_dict](**kwargs)
         """
 
-        command_array = command.split("~")
-        function_key = command_array[0]
-
         try:
 
             # kwargs are specified, parse!
-            if len(command_array) > 1:
+            if type(command) == list:
                 try:
-                    kwargs = eval(command_array[1])
+                    function_key = command[0]
+                    kwargs = command[1]
                     self._control_dict[function_key](**kwargs)
                 except:
                     err = "Mangled command ({:s})".format(command)
@@ -117,7 +115,7 @@ class RobotDevice:
 
             # No kwargs specified         
             else:
-                self._control_dict[function_key]()
+                self._control_dict[command]()
 
             # Send the message we just processed back to the controller.
             self._append_message(RobotMessage(source_device=self.name,
@@ -400,7 +398,7 @@ class TwoMotorCatSteer(RobotDevice):
                                               destination_device=self.name,
                                               source="robot",
                                               source_device=self.name,
-                                              message="setspeed~{\"speed\":0}"))
+                                              message=["setspeed",{"speed":0}]))
         else:
             with self._lock: self._speed = speed
 
@@ -491,6 +489,7 @@ class RangeFinder(RobotDevice):
         """
 
         with self._lock: self._range_value = self._range_finder.getRange()
+
         if (self._range_value < 0):
             self._append_message(RobotMessage(destination_device="warn",
                                               source_device=self.name,
