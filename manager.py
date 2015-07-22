@@ -8,7 +8,7 @@ import multiprocessing, time
 from copy import copy
 
 from messages import RobotMessage
-from robotDevices import DummyDevice
+from devices import DummyDevice
 
 class DeviceManager(multiprocessing.Process):
     """
@@ -20,7 +20,10 @@ class DeviceManager(multiprocessing.Process):
  
     def __init__(self,device_list=[],poll_interval=0.1):
         """
-        
+        Initialize.  
+
+            device_list: list of RobotDevice instances
+            poll_interval: how often to poll messaging queues (in seconds)     
         """
     
         multiprocessing.Process.__init__(self)
@@ -76,14 +79,6 @@ class DeviceManager(multiprocessing.Process):
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
 
-    def close(self):
-        """
-        When the DeviceManager instance is killed, release all of the devices so
-        they can  be picked up by another device manager.
-        """
-
-        for d in self.loaded_devices:
-            d.disconnectManager()
 
     def message_to_device(self,message):
         """ 
@@ -101,8 +96,19 @@ class DeviceManager(multiprocessing.Process):
             err = "device {:s} not loaded.".format(message.destination_device)
             self.output_queue.put(RobotMessage(destination_device="warn",message=err))
        
+    def close(self):
+        """
+        When the DeviceManager instance is killed, release all of the devices so
+        they can be picked up by another device manager.
+        """
+
+        for d in self.loaded_devices:
+            d.disconnectManager()
+
     def shutdown(self):
         """
+        Shutdown all loaded devices (will propagate all the way down to cleanup
+        of GPIO pins).  
         """
 
         for d in self.loaded_devices:

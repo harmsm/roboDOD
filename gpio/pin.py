@@ -59,7 +59,7 @@ class Pin:
         """       
  
         with global_pin_lock:
-            if global_pin_owners[self.pin_number] == owner
+            if global_pin_owners[self.pin_number] == owner:
                 global_pin_owners[self.pin_number] = 0
     
     def up(self,owner):

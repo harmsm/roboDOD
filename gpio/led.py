@@ -68,4 +68,11 @@ class LED:
         self.pin.set_duty_cycle(self.duty_cycle,owner)
 
         self.pin.release(owner)
+
+    def shutdown(self,owner):
+        """
+        Shut down the GPIO pin for this LED.
+        """
         
+        self.pin.shutdown(owner)       
+ 

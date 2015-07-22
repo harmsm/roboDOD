@@ -22,9 +22,8 @@ from tornado.options import define, options
 import datetime, time, sys, signal, logging
 import multiprocessing
 
-import robotConfiguration
-from robotDeviceManager import DeviceManager
-from robotMessages import RobotMessage
+import configuration
+from messages import RobotMessage
  
 define("port", default=8081, help="run on the given port", type=int)
  
