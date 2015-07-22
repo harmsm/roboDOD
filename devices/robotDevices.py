@@ -8,17 +8,14 @@ connectManager: put device under exclusive control of a DeviceManager instance
 disconnectManager: drop current controlling DeviceManager instance
 get: get any messages since last polled, clearing messages
 put: send a command to the device (via private methods in _control_dict)
-getNow: return data from device directly, skipping asynchrony
+get_now: return data from device directly, skipping asynchrony
 shutdown: safely shutdown the hardware
 
 All other methods should private and controlled via the put() method. put takes
-a string command of the form:
+a command of the form:
 
-    "key~{kwarg1:value1,kwarg2:value2...}"
-
-parses it and sends it to _control_dict:
-
-    self._control_dict[key](**kwargs)
+    "key" OR
+    ["key",{kwarg1:value1,kwarg2:value2...}"]
 
 When writing methods, all functions should access self._messages via the 
 self._append_message and self._get_messages methods, as these use a re-enterant
@@ -88,7 +85,7 @@ class RobotDevice:
         return self._get_all_messages()
     
 
-    def put(self,command):
+    def put(self,command,owner):
         """
         Send a commmand to the device.  Expects to have structure:
 
@@ -106,7 +103,7 @@ class RobotDevice:
                 try:
                     function_key = command[0]
                     kwargs = command[1]
-                    self._control_dict[function_key](**kwargs)
+                    self._control_dict[function_key](owner=owner,**kwargs)
                 except:
                     err = "Mangled command ({:s})".format(command)
                     self._append_message(RobotMessage(destination_device="warn",
@@ -115,12 +112,18 @@ class RobotDevice:
 
             # No kwargs specified         
             else:
-                self._control_dict[command]()
+                self._control_dict[command](owner=owner)
 
             # Send the message we just processed back to the controller.
             self._append_message(RobotMessage(source_device=self.name,
                                               message=command))
 
+
+        # ownership collision, try again on next pass
+        except OwnershipError:
+            self._append_message(RobotMessage(destination="robot",
+                                              destination_device=self.name,
+                                              message=command))
 
         # Problem somewhere.
         except:
@@ -129,18 +132,15 @@ class RobotDevice:
             self._append_message(RobotMessage(destination_device="warn",
                                               source_device=self.name,
                                               message=err))
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              message=command))
  
-    def getNow(self,command):
+    def get_now(self,command,owner):
         """
         Return value immediately; forget that asynchronous stuff.
         """
         
         return None
  
-    def shutdown(self):
+    def shutdown(self,owner):
         """
         Safely shut down the piece of hardware.  
         """
@@ -188,12 +188,12 @@ class DummyDevice(RobotDevice):
         self._append_message(RobotMessage(source_device=self.name,
                                           message=command))
 
-class GPIOMotor(RobotDevice):
+class SingleMotor(RobotDevice):
     """
-    Single GPIOMotor under control of two GPIO pins.
+    Single gpio.Motor under control of two GPIO pins.
     """
  
-    def __init__(self,pin1,pin2,name=None):
+    def __init__(self,pin1,pin2,duty_cycle=100,frequency=50,name=None):
         """
         Initialize the motor, defining an allowable set of commands, as well as
         the gpio pins.  
@@ -201,7 +201,7 @@ class GPIOMotor(RobotDevice):
         control_dict:
         forward: motor going forward, no kwargs
         reverse: motor going in reverse, no kwargs
-        stop: stop the motor, no kwargs
+        brake: use the motor as a brake, no kwargs
         coast: disengage the motor, no kwargs
         set_dutycyle: set the PWM duty cycle, kwargs = {"duty_cycle":float}
         set_freq: set PWM frequency, kwargs = {"frequency":float}
@@ -209,20 +209,23 @@ class GPIOMotor(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-        self._motor = gpio.GPIOMotor(pin1,pin2)
+        self._motor = gpio.Motor(pin1,pin2,
+                                 duty_cycle=duty_cycle,
+                                 frequency=frequency)
+
         self._control_dict = {"forward":self._motor.forward,
                               "reverse":self._motor.reverse,
-                              "stop":self._motor.stop,
+                              "break":self._motor.brake,
                               "coast":self._motor.coast,
-                              "set_dutycycle":self._motor.setPWMDutyCycle,
-                              "set_freq":self._motor.setPWMFrequency}
+                              "set_dutycycle":self._motor.set_duty_cycle,
+                              "set_freq":self._motor.set_frequency}
 
-    def shutdown(self):
+    def shutdown(self,owner):
         """
         Shut down the motor.
         """
 
-        self._motor.shutdown()
+        self._motor.coast(owner)
 
 
 class TwoMotorDriveSteer(RobotDevice):
@@ -243,7 +246,7 @@ class TwoMotorDriveSteer(RobotDevice):
         control_dict:
         forward: drive motor going forward, no kwargs
         reverse: drive motor going in reverse, no kwargs
-        stop: stop the drive motor, no kwargs
+        brake: use the motor as a brake, no kwargs
         coast: disengage the drive motor, no kwargs
         left: steer motor left, no kwargs
         right: steer motor right, no kwargs
@@ -252,59 +255,59 @@ class TwoMotorDriveSteer(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-        self._drive_motor = gpio.GPIOMotor(drive_pin1,drive_pin2)
-        self._steer_motor = gpio.GPIOMotor(steer_pin1,steer_pin2) 
+        self._drive_motor = gpio.Motor(drive_pin1,drive_pin2)
+        self._steer_motor = gpio.Motor(steer_pin1,steer_pin2) 
 
         self._control_dict = {"forward":self._drive_motor.forward,
                               "reverse":self._drive_motor.reverse,
-                              "stop":self._drive_motor.stop,
+                              "brake":self._drive_motor.brake,
                               "coast":self._drive_motor.coast,
-                              "left":self._steerLeft,
-                              "right":self._steerRight,
-                              "center":self.steerCenter}
+                              "left":self._left,
+                              "right":self._right,
+                              "center":self._steer_center}
         
         self._current_steer_motor_state = 0
 
         self._left_return_constant =  left_return_constant
         self._right_return_constant = right_return_constant
 
-    def _steerLeft(self):
+    def _left(self,owner):
        
         with self._lock: self._current_steer_motor_state = -1
-        self._steer_motor.forward()
+        self._steer_motor.forward(owner)
 
-    def _steerRight(self):
+    def _right(self,owner):
         
         with self._lock: self._current_steer_motor_state = 1
-        self._steer_motor.reverse()
+        self._steer_motor.reverse(owner)
 
-    def _steerCenter(self):
+    def _steer_center(self,owner):
 
         # Steering wheels in the left-hand position
         if self._current_steer_motor_state == -1:
 
-           self._steer_motor.reverse()
+           self._steer_motor.reverse(owner)
            time.sleep(self._left_return_constant)
-           self._steer_motor.coast()
+           self._steer_motor.coast(owner)
 
         # Steering wheels in the right-hand position
         if self._current_steer_motor_state == 1:
             
-            self._steer_motor.forward()
+            self._steer_motor.forward(owner)
             time.sleep(self._left_return_constant)
-            self._steer_motor.coast()
+            self._steer_motor.coast(owner)
 
-        self._steer_motor.coast()
+        self._steer_motor.coast(owner)
         with self._lock: self._current_steer_motor_state = 0
 
-    def shutdown(self):
+    def shutdown(self,owner):
         
-        self._steer_motor.shutdown()
-        self._drive_motor.shutdown()
+        self._steer_motor.coast(owner)
+        self._drive_motor.coast(owner)
 
 class TwoMotorCatSteer(RobotDevice):
     """
-    Two GPIOMotors that work in synchrony as a cat drive.  The left and right
+    Two gpio.Motor that work in synchrony as a cat drive.  The left and right
     motors go forward and reverse independently.  Steering is achieved by 
     running one forward, the other in reverse.  
     """ 
@@ -324,7 +327,7 @@ class TwoMotorCatSteer(RobotDevice):
         control_dict:
         forward: motors going forward, no kwargs
         reverse: motors going in reverse, no kwargs
-        stop: stop the motors, no kwargs
+        brake: use the motors as brakes, no kwargs
         coast: disengage the motors, no kwargs
         left: spin left, no kwargs
         right: spin right, no kwargs
@@ -333,53 +336,53 @@ class TwoMotorCatSteer(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-        self._left_motor = gpio.GPIOMotor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
-        self._right_motor = gpio.GPIOMotor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
+        self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
+        self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
     
-        self._control_dict = {"forward":self._driveForward,
-                              "reverse":self._driveReverse,
-                              "stop":self._motorStop,
-                              "coast":self._motorCoast,
-                              "left":self._steerLeft,
-                              "right":self._steerRight,
-                              "setspeed":self._setSpeed}
+        self._control_dict = {"forward":self._forward,
+                              "reverse":self._reverse,
+                              "brake":self._brake,
+                              "coast":self._coast,
+                              "left":self._left,
+                              "right":self._right,
+                              "setspeed":self._set_speed}
 
         self._speed = speed
         self._max_speed = max_speed
         self._speed_constant = 100/max_speed
 
  
-    def _driveForward(self):
+    def _forward(self,owner):
 
-        self._left_motor.forward()
-        self._right_motor.forward()
+        self._left_motor.forward(owner)
+        self._right_motor.forward(owner)
 
-    def _driveReverse(self):
+    def _reverse(self,owner):
 
-        self._left_motor.reverse()
-        self._right_motor.reverse()
+        self._left_motor.reverse(owner)
+        self._right_motor.reverse(owner)
         
-    def _steerLeft(self):
+    def _left(self,owner):
         
-        self._left_motor.reverse()
-        self._right_motor.forward()
+        self._left_motor.reverse(owner)
+        self._right_motor.forward(owner)
 
-    def _steerRight(self):
+    def _right(self,owner):
        
-        self._left_motor.forward() 
-        self._right_motor.reverse()
+        self._left_motor.forward(owner) 
+        self._right_motor.reverse(owner)
         
-    def _motorStop(self):
+    def _brake(self,owner):
 
-        self._left_motor.stop()
-        self._right_motor.stop()
+        self._left_motor.brake(owner)
+        self._right_motor.brake(owner)
         
-    def _motorCoast(self):
+    def _coast(self,owner):
 
-        self._left_motor.coast()
-        self._right_motor.coast()
+        self._left_motor.coast(owner)
+        self._right_motor.coast(owner)
 
-    def _setSpeed(self,speed=0):
+    def _set_speed(self,speed,owner):
         """
         Set the speed of the motors.
         """
@@ -402,16 +405,16 @@ class TwoMotorCatSteer(RobotDevice):
         else:
             with self._lock: self._speed = speed
 
-        self._left_motor.setPWMDutyCycle(self._speed*self._speed_constant)
-        self._right_motor.setPWMDutyCycle(self._speed*self._speed_constant)
+        self._left_motor.set_duty_cycle(self._speed*self._speed_constant,owner)
+        self._right_motor.set_duty_cycle(self._speed*self._speed_constant,owner)
                      
-    def shutdown(self):
+    def shutdown(self,owner):
 
-        self._left_motor.shutdown()
-        self._right_motor.shutdown()
+        self._left_motor.coast(owner)
+        self._right_motor.coast(owner)
 
 
-class LEDIndicatorLight(RobotDevice):
+class IndicatorLight(RobotDevice):
     """
     Class for controlling an indicator light.
     """
@@ -432,18 +435,18 @@ class LEDIndicatorLight(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-        self._led = gpio.GPIOLED(control_pin,frequency=frequency,duty_cycle=duty_cycle)
+        self._led = gpio.LED(control_pin,frequency=frequency,duty_cycle=duty_cycle)
 
         self._control_dict = {"on":self._led.on,
                               "off":self._led.off,
                               "flip":self._led.flip,
                               "flash":self._flashLED}
 
-    def _flashLED(self,seconds_to_flash=5):
+    def _flashLED(self,owner,seconds_to_flash=5):
         """
         """
 
-        self._led.on()
+        self._led.on(owner)
 
         # Allows the client to turn on the LED for a fixed number of
         # seconds by adding a "turn off" message to the output queue.  This is
@@ -456,9 +459,9 @@ class LEDIndicatorLight(RobotDevice):
                                           message="off"))
        
  
-    def shutdown(self):
+    def shutdown(self,owner):
 
-        self._led.off()
+        self._led.off(owner)
 
 
 class RangeFinder(RobotDevice):
@@ -479,16 +482,16 @@ class RangeFinder(RobotDevice):
         RobotDevice.__init__(self,name)
 
         self._range_finder = gpio.UltrasonicRange(trigger_pin,echo_pin,timeout)
-        self._control_dict = {"get":self._getRange}
+        self._control_dict = {"get":self._get_range}
         self._range_value = -10.0
         self._messages = []
 
-    def _getRange(self):
+    def _get_range(self,owner):
         """
         Measure the range.
         """
 
-        with self._lock: self._range_value = self._range_finder.getRange()
+        self._range_value = self._range_finder.getRange(owner)
 
         if (self._range_value < 0):
             self._append_message(RobotMessage(destination_device="warn",
@@ -498,7 +501,7 @@ class RangeFinder(RobotDevice):
             self._append_message(RobotMessage(source_device=self.name,
                                               message="{:.12f}".format(self._range_value)))
 
-    def getNow(self):
+    def get_now(self,owner):
         """
         Return current range -- don't bother with that asynchronous stuff.
         """

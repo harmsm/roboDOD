@@ -64,7 +64,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         # Send connection notice to client
         self.write_message(RobotMessage(destination="controller",
-                                        message=info_string).asString())
+                                        message=info_string).as_string())
 
         self.q = self.application.settings.get('queue')
  
@@ -77,10 +77,10 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
             info_string = "Tornado recieved \"{:s}\" from client.".format(message)
             self.writeLog(info_string)
             self.write_message(RobotMessage(destination="controller",
-                                            message=info_string).asString())
+                                            message=info_string).as_string())
 
         m = RobotMessage()
-        m.fromString(message) 
+        m.from_string(message) 
         self.q.put(m)
 
         if self.verbose:
@@ -99,7 +99,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         # Turn off the status light indicating that we're connected.
         self.q.put(RobotMessage(destination="robot",
                                 destination_device="client_connected_light",
-                                message="off").asString())
+                                message="off").as_string())
 
         clients.remove(self)
 
@@ -112,34 +112,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                                                   string))
         self.local_log.flush() 
 
- 
-def main(argv=None):
-    
-    def signal_handler(signal, frame):
-        dm.shutdown()
-
-        # This is a hack... this should go in low level
-        import RPi.GPIO as GPIO
-        GPIO.cleanup()
-
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    if argv == None:
-        argv = sys.argv[1:]
-
-    mpl = multiprocessing.log_to_stderr()
-    mpl.setLevel(logging.DEBUG)
- 
-    dm = DeviceManager(robotConfiguration.device_list)
-    dm.start()
- 
-    # wait a second before sending first task
-    time.sleep(1)
-    dm.input_queue.put(RobotMessage(destination="robot",
-                                    destination_device="dummy",
-                                    message="initializing"))
+def start(dm):
 
     # Initailize handler 
     tornado.options.parse_command_line()
@@ -173,9 +146,9 @@ def main(argv=None):
 
         if not dm.output_queue.empty():
             m = dm.output_queue.get()
-            if m.checkDelay() == True:
+            if m.check_delay() == True:
                 for c in clients:
-                    c.write_message(m.asString())
+                    c.write_message(m.as_string())
             else:
                 dm.output_queue.put(m)
 
@@ -183,10 +156,6 @@ def main(argv=None):
     # check for robot output 
     mainLoop = tornado.ioloop.IOLoop.instance()
     scheduler = tornado.ioloop.PeriodicCallback(checkResults, 10, io_loop = mainLoop)
-
     scheduler.start()
     mainLoop.start()
- 
-if __name__ == "__main__":
 
-    main()

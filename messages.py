@@ -1,6 +1,6 @@
 __description__ = \
 """
-Class for holding messages to pass back and forth in asyncrhonous
+Class for holding messages to pass back and forth in asynchronous
 fashion.
 """
 __author__ = "Michael J. Harms"
@@ -33,7 +33,7 @@ class RobotMessage:
 
         self.minimum_time = self.arrival_time + self.delay_time
 
-    def fromString(self,message_string):
+    def from_string(self,message_string):
         """
         Parse a message string and use it to populate the message.
         """
@@ -50,14 +50,14 @@ class RobotMessage:
             err = "mangled message ({:s}) recieved!".format(message_string)
             return RobotMessage(destination_device="warn", message=err)
 
-    def asString(self):
+    def as_string(self):
         """
         Convert a message instance to a string.
         """
 
         return json.dumps(self.__dict__)
 
-    def checkDelay(self):
+    def check_delay(self):
         """
         See if a message is ready to send given its time stamp.
         """

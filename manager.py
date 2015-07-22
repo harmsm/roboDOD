@@ -1,22 +1,14 @@
 __description__ = \
 """
-
 """
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
 import multiprocessing, time
-from robotMessages import *
-from robotDevices import DummyDevice
 from copy import copy
 
-class RobotDeviceManagerError(Exception):
-    """
-    General error class for this module. 
-    """
-
-    pass
-
+from messages import RobotMessage
+from robotDevices import DummyDevice
 
 class DeviceManager(multiprocessing.Process):
     """
@@ -39,15 +31,15 @@ class DeviceManager(multiprocessing.Process):
         self.loaded_devices_dict = {}
 
         for d in device_list:
-            self.loadDevice(d)
+            self.load_device(d)
 
         # Load a virtual device for dealing with commands that have no specified
         # device
-        self.loadDevice(DummyDevice(name="dummy"))
+        self.load_device(DummyDevice(name="dummy"))
 
         self.poll_interval = poll_interval
     
-    def loadDevice(self,d):
+    def load_device(self,d):
         """
         Load a device into the DeviceManager.
         """
@@ -68,7 +60,7 @@ class DeviceManager(multiprocessing.Process):
             else:
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
-    def unloadDevice(self,device_name):
+    def unload_device(self,device_name):
         """
         Unload a device from the control of the DeviceManager.
         """
@@ -93,7 +85,7 @@ class DeviceManager(multiprocessing.Process):
         for d in self.loaded_devices:
             d.disconnectManager()
 
-    def sendMessageToDevice(self,message):
+    def message_to_device(self,message):
         """ 
         Send data to appropriate device in self.loaded_devices.
         """
@@ -103,7 +95,8 @@ class DeviceManager(multiprocessing.Process):
             message.destination_device = "dummy"
 
         try:
-            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message)
+            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message,
+                                                                                          int(message.arrival_time))
         except KeyError:
             err = "device {:s} not loaded.".format(message.destination_device)
             self.output_queue.put(RobotMessage(destination_device="warn",message=err))
@@ -131,11 +124,11 @@ class DeviceManager(multiprocessing.Process):
 
                     m = RobotMessage()
 
-                    # fromString only returns something if the input message was
+                    # from_string only returns something if the input message was
                     # mangled.  If it's mangled, put the output -- which is a 
                     # RobotMessage instance warning of the mangling -- back into
                     # the queue.
-                    status = m.fromString(message)
+                    status = m.from_string(message)
                     if status != None:
                         self.output_queue.put(status)
                         continue
@@ -144,8 +137,8 @@ class DeviceManager(multiprocessing.Process):
  
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
-                if message.checkDelay() == True:
-                    self.sendMessageToDevice(message)
+                if message.check_delay() == True:
+                    self.message_to_device(message)
                 else:
                     self.input_queue.put(message)
                 
