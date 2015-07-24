@@ -26,9 +26,9 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
 from random import random
-import time, threading
+import time, threading, copy
 from messages import RobotMessage
-
+import gpio
 
 class RobotDevice:
     """
@@ -44,7 +44,7 @@ class RobotDevice:
         if name != None:
             self.name = name
         else:
-            self.name = "{:s}{.3f}".format(self.__class__.__name__,time.time())
+            self.name = "{:s}{:.3f}".format(self.__class__.__name__,time.time())
 
         self._control_dict = {}
         self._manager = None
@@ -95,7 +95,7 @@ class RobotDevice:
 
             self._control_dict[key_for_control_dict](**kwargs)
         """
-
+    
         try:
 
             # kwargs are specified, parse!
@@ -120,18 +120,18 @@ class RobotDevice:
 
 
         # ownership collision, try again on next pass
-        except OwnershipError:
+        except gpio.OwnershipError:
             self._append_message(RobotMessage(destination="robot",
                                               destination_device=self.name,
                                               message=command))
 
         # Problem somewhere.
-        except:
-            err = "Command {:s} failed for {:s}. Trying again.".format(command,
-                                                                       self.__class__.__name__)
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
+        #except:
+        #    err = "Command {:s} failed for {:s}. Trying again.".format(command,
+        #                                                               self.__class__.__name__)
+        #    self._append_message(RobotMessage(destination_device="warn",
+        #                                      source_device=self.name,
+        #                                      message=err))
  
     def get_now(self,command,owner):
         """
@@ -179,7 +179,7 @@ class DummyDevice(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-    def put(self,command):
+    def put(self,command,owner):
         """
         This dummy function basically echoes the command back to the 
         device manager.

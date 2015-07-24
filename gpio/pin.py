@@ -4,13 +4,21 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(10)
 
 import multiprocessing
-global_pin_owners = [-1 for i in range(num_pins)]
-global_pin_lock = multiprocessing.Rlock()
+global_pin_owners = [-1 for i in range(40)]
+global_pin_lock = multiprocessing.RLock()
 
 class OwnershipError(Exception):
     """
     Errors in the ownership of a given gpio pin (such as two threads trying to
     control a pin simultaneously). 
+    """
+
+    pass 
+
+class HardwareConflictError(Exception):
+    """
+    Errors in which the user to put the hardware into a nonsensical state (such as 
+    manually putting a pin with pulse width mondulation running into the up state).
     """
 
     pass 
@@ -23,12 +31,13 @@ class Pin:
     controlled by a single owner--defined by an integer--at a single time. 
     """
 
-    def __init__(self,pin_number,frequency=50,duty_cycle=100):
+    def __init__(self,pin_number,frequency=50,duty_cycle=100,as_input=False):
 
         self.pin_number = pin_number
         self.duty_cycle = duty_cycle
         self.frequency = frequency
-  
+        self.as_input = as_input 
+ 
         self._pwm = None
         self._initialize()
 
@@ -40,7 +49,11 @@ class Pin:
 
         with global_pin_lock:
 
-            if global_pin_owner[self.pin_number] == -1:
+            # Already acquired by owner
+            if global_pin_owners[self.pin_number] == owner:
+                return
+
+            if global_pin_owners[self.pin_number] == -1:
                 self._initialize()
                 global_pin_owners[self.pin_number] = owner
 
@@ -67,8 +80,13 @@ class Pin:
         Put a pin in the "up" state.
         """
 
-        if pin_owners[self.pin_number] == owner:
-            GPIO.output(self.pin_number,True)
+        if global_pin_owners[self.pin_number] == owner:
+            if self._pwm == None:
+                GPIO.output(self.pin_number,True)
+            else:
+                err = "cannot set to 'up': pulse width modulation running on pin.\n"
+                raise HardwareConflictError(err)
+
         else:
             err = "pin {:d} owned by {:d}, not {:d}\n".format(
                 self.pin_number,global_pin_owners[self.pin_number],owner)
@@ -79,8 +97,12 @@ class Pin:
         Put a pin in the "down" state.
         """
 
-        if pin_owners[self.pin_number] == owner:
-            GPIO.output(self.pin_number,False)
+        if global_pin_owners[self.pin_number] == owner:
+            if self._pwm == None:
+                GPIO.output(self.pin_number,False)
+            else:
+                err = "cannot set to 'down': pulse width modulation running on pin.\n"
+                raise HardwareConflictError(err)
         else:
             err = "pin {:d} owned by {:d}, not {:d}\n".format(
                 self.pin_number,global_pin_owners[self.pin_number],owner)
@@ -91,7 +113,7 @@ class Pin:
         Read the state of a pin.
         """
 
-        if pin_owners[self.pin_number] == owner:
+        if global_pin_owners[self.pin_number] == owner:
             return GPIO.input(self.pin_number)
         else:
             err = "pin {:d} owned by {:d}, not {:d}\n".format(
@@ -131,7 +153,7 @@ class Pin:
                 self.pin_number,global_pin_owners[self.pin_number],owner)
             raise OwnershipError(err)   
         
-    def change_frequency(self,frequency,owner):
+    def set_frequency(self,frequency,owner):
         """
         Change pulse width modulation frequency.  If PWM is already running, it
         will be stopped and restarted with the new frequency.
@@ -149,7 +171,7 @@ class Pin:
                 self.pin_number,global_pin_owners[self.pin_number],owner)
             raise OwnershipError(err)   
 
-    def change_duty_cycle(self,duty_cycle,owner):
+    def set_duty_cycle(self,duty_cycle,owner):
         """
         Change pulse width modulation duty cycle.  If PWM is already running, it
         will be stopped and restarted with the new duty cycle.
@@ -163,6 +185,7 @@ class Pin:
                 self.start_pwm(owner)
 
         else:
+       
             err = "pin {:d} owned by {:d}, not {:d}\n".format(
                 self.pin_number,global_pin_owners[self.pin_number],owner)
             raise OwnershipError(err)   
@@ -175,6 +198,12 @@ class Pin:
 
         with global_pin_lock:
             if global_pin_owners[self.pin_number] == owner:
+
+                # Put the pin in the down state
+                if self._pwm != None:
+                    self.stop_pwm(owner)
+                self.down(owner)   
+
                 GPIO.cleanup(self.pin_number)
 
                 # Record that the pin is cleaned up.  This will also
@@ -190,10 +219,13 @@ class Pin:
 
             # If the pin has not been initialized (global_pin_owners[pin] == -1),
             # initailize it
-            if global_gpio_owners[self.pin_number] == -1:
-                GPIO.setup(self.pin_number, GPIO.OUT)
-                self.down(owner=-1)
-                global_gpio_owners[self.pin_number] = 0
+            if global_pin_owners[self.pin_number] == -1:
+                if self.as_input == True:
+                    GPIO.setup(self.pin_number, GPIO.IN)
+                else:
+                    GPIO.setup(self.pin_number, GPIO.OUT)
+                    self.down(owner=-1)
+                global_pin_owners[self.pin_number] = 0
             else:
                 err = "pin {:d} already under control of another gpio.Pin instance\n".format(self.pin_number)
                 raise OwnershipError(err)

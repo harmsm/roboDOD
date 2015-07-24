@@ -6,13 +6,18 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
  
-import signal
+import signal, sys, time
 import manager, configuration, webserver, messages
  
 def main(argv=None):
     
     def signal_handler(signal, frame):
+        print("Shutting down...")
+        sys.stdout.flush()
+        
         dm.shutdown()
+        time.sleep(5)
+        server.shutdown() 
 
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -28,7 +33,8 @@ def main(argv=None):
                                              destination_device="dummy",
                                              message="initializing"))
 
-    webserver.start(dm)
+    server = webserver.Webserver(dm)
+    server.start()
 
 if __name__ == "__main__":
     main()

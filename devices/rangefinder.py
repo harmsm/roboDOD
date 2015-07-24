@@ -1,4 +1,7 @@
 
+import time
+
+import gpio
 from . import RobotDevice
 from messages import RobotMessage
 
@@ -29,7 +32,7 @@ class RangeFinder(RobotDevice):
         Measure the range.
         """
 
-        self._range_value = self._range_finder.getRange(owner)
+        self._range_value = self._range_finder.get_range(owner)
 
         if (self._range_value < 0):
             self._append_message(RobotMessage(destination_device="warn",
@@ -44,7 +47,7 @@ class RangeFinder(RobotDevice):
         Return current range -- don't bother with that asynchronous stuff.
         """
 
-        return self._range_finder.getRange()
+        return self._range_finder.get_range()
 
     def shutdown(self,owner):
         """

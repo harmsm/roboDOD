@@ -17,7 +17,7 @@ class LED:
         """
 
         self.pin.acquire(owner)
-        self.pin.pwm_start(owner)
+        self.pin.start_pwm(owner)
         self.led_on = True
         self.pin.release(owner)
 
@@ -27,7 +27,7 @@ class LED:
         """
 
         self.pin.acquire(owner)
-        self.pin.pwm_stop(owner)
+        self.pin.stop_pwm(owner)
         self.led_on = False
         self.pin.release(owner)
    

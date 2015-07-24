@@ -13,8 +13,7 @@ class Motor:
         self.frequency = frequency
         self.duty_cycle = duty_cycle
 
-        self._current_state = ""
-        self.coast()
+        self._current_state = "coast"
 
     def _acquire(self,owner):
         """
@@ -47,8 +46,8 @@ class Motor:
 
         self._acquire(owner)
 
-        self.pin1.start_pwm()
-        self.pin2.stop_pwm()
+        self.pin1.start_pwm(owner)
+        self.pin2.stop_pwm(owner)
         self._current_state = "forward"
 
         self._release(owner)
@@ -64,8 +63,8 @@ class Motor:
 
         self._acquire(owner)
 
-        self.pin1.stop_pwm()
-        self.pin2.start_pwm()
+        self.pin1.stop_pwm(owner)
+        self.pin2.start_pwm(owner)
         self._current_state = "reverse"
         
         self._release(owner)
@@ -81,8 +80,8 @@ class Motor:
 
         self._acquire(owner)
 
-        self.pin1.start_pwm()
-        self.pin2.start_pwm()
+        self.pin1.start_pwm(owner)
+        self.pin2.start_pwm(owner)
         self._current_state = "brake"
 
         self._release(owner)
@@ -98,8 +97,8 @@ class Motor:
         
         self._acquire(owner)
 
-        self.pin1.stop_pwm()
-        self.pin2.stop_pwm()
+        self.pin1.stop_pwm(owner)
+        self.pin2.stop_pwm(owner)
         self._current_state = "coast"
 
         self._release(owner)

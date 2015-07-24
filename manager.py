@@ -4,7 +4,7 @@ __description__ = \
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
-import multiprocessing, time
+import multiprocessing, time, random
 from copy import copy
 
 from messages import RobotMessage
@@ -41,7 +41,9 @@ class DeviceManager(multiprocessing.Process):
         self.load_device(DummyDevice(name="dummy"))
 
         self.poll_interval = poll_interval
-    
+   
+        self.manager_id = int(random.random()*10000) + 1
+ 
     def load_device(self,d):
         """
         Load a device into the DeviceManager.
@@ -112,7 +114,7 @@ class DeviceManager(multiprocessing.Process):
         """
 
         for d in self.loaded_devices:
-            d.shutdown()
+            d.shutdown(self.manager_id)
 
     def run(self):
 

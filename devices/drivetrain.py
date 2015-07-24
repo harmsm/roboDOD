@@ -1,6 +1,6 @@
 
-from . import RobotDevice
 import gpio
+from . import RobotDevice
 from messages import RobotMessage
 
 class SingleMotor(RobotDevice):

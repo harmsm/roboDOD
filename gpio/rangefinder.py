@@ -1,3 +1,4 @@
+import time
 from . import Pin, OwnershipError
 
 class UltrasonicRange:
@@ -9,7 +10,8 @@ class UltrasonicRange:
     def __init__(self,trigger_pin,echo_pin,timeout=50000):
 
         self.trigger_pin = Pin(trigger_pin)
-        self.echo_pin = Pin(echo_pin)
+        self.echo_pin = Pin(echo_pin,as_input=True)
+
         self.timeout = timeout
 
         # Allow module to settle
@@ -51,7 +53,7 @@ class UltrasonicRange:
         # Find start of echo
         counter = 0 
         start = time.time()
-        while echo_pin.input(owner) == 0 and counter < self.timeout:
+        while self.echo_pin.input(owner) == 0 and counter < self.timeout:
             start = time.time()
             counter += 1
 
@@ -62,7 +64,7 @@ class UltrasonicRange:
         # Find end of echo
         counter = 0 
         stop = time.time()
-        while echo_pin.input(owner) == 1 and counter < self.timeout:
+        while self.echo_pin.input(owner) == 1 and counter < self.timeout:
             stop = time.time()
             counter += 1
 
@@ -81,7 +83,6 @@ class UltrasonicRange:
         Shut down and clean up the pins.
         """     
  
-        self.coast(owner) 
         self.trigger_pin.shutdown(owner)
         self.echo_pin.shutdown(owner)
         

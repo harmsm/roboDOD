@@ -1,4 +1,5 @@
 
+import gpio
 from . import RobotDevice
 from messages import RobotMessage
 

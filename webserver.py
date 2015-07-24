@@ -111,50 +111,65 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
                                                   string))
         self.local_log.flush() 
 
-def start(dm):
+class Webserver:
 
-    # Initailize handler 
-    tornado.options.parse_command_line()
-    app = tornado.web.Application(
-        handlers=[
-            (r"/", IndexHandler),
-            (r"/ws", WebSocketHandler),
-            (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
-            (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
-            (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
-            (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':"client/fonts/"}),
-            (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
-        ], queue=dm.input_queue
-    )
+    def __init__(self,dm):
 
-    httpServer = tornado.httpserver.HTTPServer(app)
-    httpServer.listen(options.port)
+        self.dm = dm
 
-    # Indicate that robot is ready to listen
-    dm.input_queue.put(RobotMessage(destination="robot",
-                                    destination_device="dummy",
-                                    message="Listening on port: {:d}".format(options.port)))
-    dm.input_queue.put(RobotMessage(destination="robot",
-                                    destination_device="system_up_light",
-                                    message="on"))
+    def start(self):
+
+        # Initailize handler 
+        tornado.options.parse_command_line()
+        app = tornado.web.Application(
+            handlers=[
+                (r"/", IndexHandler),
+                (r"/ws", WebSocketHandler),
+                (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
+                (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
+                (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
+                (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':"client/fonts/"}),
+                (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
+            ], queue=self.dm.input_queue
+        )
+
+        self.httpServer = tornado.httpserver.HTTPServer(app)
+        self.httpServer.listen(options.port)
+
+        # Indicate that robot is ready to listen
+        self.dm.input_queue.put(RobotMessage(destination="robot",
+                                        destination_device="dummy",
+                                        message="Listening on port: {:d}".format(options.port)))
+        self.dm.input_queue.put(RobotMessage(destination="robot",
+                                        destination_device="system_up_light",
+                                        message="on"))
  
-    def checkResults():
+
+        # Typical tornado.ioloop initialization, except we added a callback in which we 
+        # check for robot output 
+        self.mainLoop = tornado.ioloop.IOLoop.instance()
+        self.scheduler = tornado.ioloop.PeriodicCallback(self.check_results,10,
+                                                         io_loop=self.mainLoop)
+        self.scheduler.start()
+        self.mainLoop.start()
+
+    def check_results(self):
         """
         Look for output from the robot.
         """
 
-        if not dm.output_queue.empty():
-            m = dm.output_queue.get()
+        if not self.dm.output_queue.empty():
+            m = self.dm.output_queue.get()
             if m.check_delay() == True:
                 for c in clients:
                     c.write_message(m.as_string())
             else:
-                dm.output_queue.put(m)
+                self.dm.output_queue.put(m)
 
-    # Typical tornado.ioloop initialization, except we added a callback in which we 
-    # check for robot output 
-    mainLoop = tornado.ioloop.IOLoop.instance()
-    scheduler = tornado.ioloop.PeriodicCallback(checkResults, 10, io_loop = mainLoop)
-    scheduler.start()
-    mainLoop.start()
+    def shutdown(self):
+        """
+        """
 
+        self.scheduler.stop()
+        self.mainLoop.stop()
+        self.httpServer.stop()

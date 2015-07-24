@@ -40,15 +40,15 @@ class RobotMessage:
 
         self.arrival_time = int(time.time()*1000)
 
-        try:
-            message_dict = json.loads(message_string)
-            for k in message_dict.keys():
-                self.__dict__[k] = message_dict[k]
-            self.minimum_time = self.arrival_time + self.delay_time
+        #try:
+        message_dict = json.loads(message_string)
+        for k in message_dict.keys():
+            self.__dict__[k] = message_dict[k]
+        self.minimum_time = self.arrival_time + self.delay_time
         
-        except:
-            err = "mangled message ({:s}) recieved!".format(message_string)
-            return RobotMessage(destination_device="warn", message=err)
+        #except:
+        #    err = "mangled message ({:s}) recieved!".format(message_string)
+        #    return RobotMessage(destination_device="warn", message=err)
 
     def as_string(self):
         """
