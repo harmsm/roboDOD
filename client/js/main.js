@@ -23,62 +23,55 @@ function RobotMessage(options){
     options.delay = typeof options.delay !== 'undefined' ? options.delay : 0.0;   
     options.message = typeof options.message !== 'undefined' ? options.message : "";     
 
-    /* Construct final RobotMessage class */
-    var msg  = { 
+    /* Class attributes */
+    this.arrival_time       : new Date().getTime(),
 
-                /* Class attributes */
-                arrival_time       : new Date().getTime(),
+    this.destination        : options.destination,
+    this.destination_device : options.destination_device,
+    this.source             : options.source,
+    this.source_device      : options.source_device,
+    this.delay              : parseFloat(options.delay),
+    this.message_id         : Math.floor(Math.random()*1e9),
+    this.message            : options.message,
 
-                destination        : options.destination,
-                destination_device : options.destination_device,
-                source             : options.source,
-                source_device      : options.source_device,
-                delay              : parseFloat(options.delay),
-                message            : options.message,
+    this.minimum_time       : this.arrival_time + this.delay,
 
+    /* Method: return the message in proper string format */
+    asString : function(){
 
-                /* Method: return the message in proper string format */
-                asString : function(){
+        return JSON.stringify(this);
 
-                    return JSON.stringify(this);
+    },
 
-                },
+    /* Method: build a RobotMessage from a string */
+    fromString : function(message_string){
 
-                /* Method: build a RobotMessage from a string */
-                fromString : function(message_string){
+        var raw_msg = JSON.parse(message_string);
+        for (var key in raw_msg){
+            this[key] = raw_msg[key];
+        };
 
-                    this.arrival_time = new Date().getTime();
-                    var raw_msg = JSON.parse(message_string);
-                    for (var key in raw_msg){
-                        this[key] = raw_msg[key];
-                    };
+        if (isNaN(this.delay)){
+            this.delay = 0;
+            console.log("setting minimum time to 0...mangled delay? (",this.delay,")");
+        }
 
-                    if (isNaN(this.delay)){
-                        this.delay = 0;
-                        console.log("setting minimum time to 0...mangled delay? (",this.delay,")");
-                    }
+        this.arrival_time = new Date().getTime();
+        this.minimum_time = this.arrival_time + this.delay;
 
-                    this.minimum_time = this.arrival_time + this.delay;
+    },
 
-                },
+    /* Method: see if delay condition is met */
+    checkDelay : function(){
 
-                /* Method: see if delay condition is met */
-                checkDelay : function(){
+        if (Date().getTime() > this.minimum_time){
+            return true;
+        } else { 
+            return false;
+        }
 
-                    if (Date().getTime() > this.minimum_time){
-                        return true;
-                    } else { 
-                        return false;
-                    }
+    },
 
-                },
-                
-                minimum_time       : this.arrival_time + this.delay,
-
-                };
-
-    return msg;
-                
 }
 
 /* ------------------------------------------------------------------------- */
@@ -211,7 +204,7 @@ function main(){
     } else {
         sendMessage(socket,RobotMessage({destination:"controller",
                                          destination_device:"warn",
-                                  message:"Could not connect to " + host + " socket"}));
+                                         message:"Could not connect to " + host + " socket"}));
     }
 
 }

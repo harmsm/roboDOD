@@ -42,7 +42,7 @@ class DeviceManager(multiprocessing.Process):
 
         self.poll_interval = poll_interval
    
-        self.manager_id = int(random.random()*10000) + 1
+        self.manager_id = int(random.random()*1e9)
  
     def load_device(self,d):
         """
@@ -93,7 +93,7 @@ class DeviceManager(multiprocessing.Process):
 
         try:
             self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message,
-                                                                                          int(message.arrival_time))
+                                                                                          message.message_id))
         except KeyError:
             err = "device {:s} not loaded.".format(message.destination_device)
             self.output_queue.put(RobotMessage(destination_device="warn",message=err))

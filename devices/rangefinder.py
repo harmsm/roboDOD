@@ -42,13 +42,6 @@ class RangeFinder(RobotDevice):
             self._append_message(RobotMessage(source_device=self.name,
                                               message="{:.12f}".format(self._range_value)))
 
-    def get_now(self,owner):
-        """
-        Return current range -- don't bother with that asynchronous stuff.
-        """
-
-        return self._range_finder.get_range()
-
     def shutdown(self,owner):
         """
         Shutdown the gpio pins associated with this device.

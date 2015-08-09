@@ -88,12 +88,12 @@ class TwoMotorDriveSteer(RobotDevice):
 
     def _left(self,owner):
        
-        with self._lock: self._current_steer_motor_state = -1
+        self._current_steer_motor_state = -1
         self._steer_motor.forward(owner)
 
     def _right(self,owner):
         
-        with self._lock: self._current_steer_motor_state = 1
+        self._current_steer_motor_state = 1
         self._steer_motor.reverse(owner)
 
     def _steer_center(self,owner):
@@ -113,7 +113,7 @@ class TwoMotorDriveSteer(RobotDevice):
             self._steer_motor.coast(owner)
 
         self._steer_motor.coast(owner)
-        with self._lock: self._current_steer_motor_state = 0
+        self._current_steer_motor_state = 0
 
     def shutdown(self,owner):
         
@@ -128,8 +128,9 @@ class TwoMotorCatSteer(RobotDevice):
     """ 
  
     def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
-                 pwm_frequency=100,pwm_duty_cycle=100,name=None,speed=0,
-                 max_speed=5):
+                 pwm_frequency=100,max_pwm_duty_cycle=100,name=None,speed=0,
+                 max_speed=5,turn_speed=1,soft_control=True,burst_start_duty=100,
+                 burst_start_delay=0.1):
         """
         Initialize the motors.
     
@@ -150,6 +151,19 @@ class TwoMotorCatSteer(RobotDevice):
         """
 
         RobotDevice.__init__(self,name)
+      
+        self._pwm_frequency = pwm_frequency 
+        self._max_pwm_duty_cycle = max_pwm_duty_cycle 
+        self._speed = speed
+        self._max_speed = max_speed
+        self._turn_speed = turn_speed
+
+        self._drive_speed = self._speed
+        self._speed_constant = self._max_pwm_duty_cycle/self._max_speed
+
+        self._soft_control = soft_control
+        self._burst_start_duty = burst_start_duty
+        self._burst_start_delay = burst_start_delay
 
         self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
         self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
@@ -162,30 +176,61 @@ class TwoMotorCatSteer(RobotDevice):
                               "right":self._right,
                               "setspeed":self._set_speed}
 
-        self._speed = speed
-        self._max_speed = max_speed
-        self._speed_constant = 100/max_speed
 
- 
+    def _burst_start(self,owner):
+
+        # Break static friction with burst of high power
+        self._left_motor.set_duty_cycle(self._burst_start_duty,owner)
+        self._right_motor.set_duty_cycle(self._burst_start_duty,owner)
+        time.sleep(self._burst_start_delay)
+   
+        # Set to appropriate motor speed
+        self._left_motor.set_duty_cycle(self._speed,owner)
+        self._right_motor.set_duty_cycle(self._speed,owner)
+
     def _forward(self,owner):
 
+        # Set motor configuration
+        self._speed = self._drive_speed
         self._left_motor.forward(owner)
         self._right_motor.forward(owner)
 
+        # burst start
+        if self._soft_control:
+            self._burst_start(owner)
+
     def _reverse(self,owner):
 
+        # Set motor configuration
+        self._speed = self._drive_speed
         self._left_motor.reverse(owner)
         self._right_motor.reverse(owner)
+        
+        # burst start
+        if self._soft_control:
+            self._burst_start(owner)
         
     def _left(self,owner):
-        
+      
+        # Set motor configuration
+        self._speed = self._turn_speed 
         self._left_motor.reverse(owner)
         self._right_motor.forward(owner)
+        
+        # burst start
+        if self._soft_control:
+            self._burst_start(owner)
 
     def _right(self,owner):
-       
+      
+        # Set motor configuration
+        self._speed = self._turn_speed 
         self._left_motor.forward(owner) 
         self._right_motor.reverse(owner)
+        
+        # burst start
+        if self._soft_control:
+            self._burst_start(owner)
         
     def _brake(self,owner):
 
@@ -218,7 +263,7 @@ class TwoMotorCatSteer(RobotDevice):
                                               source_device=self.name,
                                               message=["setspeed",{"speed":0}]))
         else:
-            with self._lock: self._speed = speed
+            self._speed = speed
 
         self._left_motor.set_duty_cycle(self._speed*self._speed_constant,owner)
         self._right_motor.set_duty_cycle(self._speed*self._speed_constant,owner)

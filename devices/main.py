@@ -1,27 +1,7 @@
 __description__ = \
 """
-These classes, built on the base-class RobotDevice, are used to provide the
-hardware-specific functions required for each device.  Each class has six 
-public methods:
-
-connectManager: put device under exclusive control of a DeviceManager instance
-disconnectManager: drop current controlling DeviceManager instance
-get: get any messages since last polled, clearing messages
-put: send a command to the device (via private methods in _control_dict)
-get_now: return data from device directly, skipping asynchrony
-shutdown: safely shutdown the hardware
-
-All other methods should private and controlled via the put() method. put takes
-a command of the form:
-
-    "key" OR
-    ["key",{kwarg1:value1,kwarg2:value2...}"]
-
-When writing methods, all functions should access self._messages via the 
-self._append_message and self._get_messages methods, as these use a re-enterant
-thread lock to stay thread-safe.  This is critical because the tornado server
-and device manager are on different threads but can both post messages.
-""" 
+The parent class RobotDevice.
+"""
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
@@ -52,7 +32,7 @@ class RobotDevice:
         self._lock = threading.RLock()
         self._messages = []
 
-    def connectManager(self,manager):
+    def connect_manager(self,manager):
         """
         Connect this device to requesting manager, unless we're already connected
         elsewhere.
@@ -69,7 +49,7 @@ class RobotDevice:
    
         return None
  
-    def disconnectManager(self):
+    def disconnect_manager(self):
         """
         Drop the connection to the manager.
         """      
@@ -85,45 +65,51 @@ class RobotDevice:
         return self._get_all_messages()
     
 
-    def put(self,command,owner):
+    def put(self,message):
         """
-        Send a commmand to the device.  Expects to have structure:
+        Send a message to the device, using callbacks defined in _control_dict.
+        message.message should either string key for the call back or a list 
+        containing the string key and then a dict of kwargs.  i.e.:
 
-            message = "key_for_control_dict~{kwarg1:value1,kward2:value2...}"
+            message.message = "a_callback_key"
+        
+        OR
 
-        and is parsed like:
+            message.message = ["a_callback_key",{kwarg1:foo,kwarg2:bar...}]
 
-            self._control_dict[key_for_control_dict](**kwargs)
+        The hardware is controlled in a thread-safe fashion by using the unique
+        message.message_id integer to declare the owner of the hardware 
+        associated with the device.
         """
-    
+   
         try:
 
             # kwargs are specified, parse!
-            if type(command) == list:
+            if type(message.message) == list:
                 try:
-                    function_key = command[0]
-                    kwargs = command[1]
-                    self._control_dict[function_key](owner=owner,**kwargs)
+                    function_key = message.message[0]
+                    kwargs = message.message[1]
+                    self._control_dict[function_key](owner=message.message_id,**kwargs)
                 except:
-                    err = "Mangled command ({:s})".format(command)
+                    err = "Mangled command ({:s})".format(message.message)
                     self._append_message(RobotMessage(destination_device="warn",
                                                       source_device=self.name,
                                                       message=err))
 
             # No kwargs specified         
             else:
-                self._control_dict[command](owner=owner)
+                self._control_dict[message.message](owner=message.message_id)
 
             # Send the message we just processed back to the controller.
             self._append_message(RobotMessage(source_device=self.name,
-                                              message=command))
+                                              message=message.message))
 
 
         # ownership collision, try again on next pass
         except gpio.OwnershipError:
             self._append_message(RobotMessage(destination="robot",
                                               destination_device=self.name,
-                                              message=command))
+                                              message=message.message))
 
         # Problem somewhere.
         #except:
@@ -132,13 +118,6 @@ class RobotDevice:
         #    self._append_message(RobotMessage(destination_device="warn",
         #                                      source_device=self.name,
         #                                      message=err))
- 
-    def get_now(self,command,owner):
-        """
-        Return value immediately; forget that asynchronous stuff.
-        """
-        
-        return None
  
     def shutdown(self,owner):
         """
@@ -179,12 +158,12 @@ class DummyDevice(RobotDevice):
 
         RobotDevice.__init__(self,name)
 
-    def put(self,command,owner):
+    def put(self,message):
         """
         This dummy function basically echoes the command back to the 
         device manager.
         """
 
         self._append_message(RobotMessage(source_device=self.name,
-                                          message=command))
+                                          message=message.message))
 
