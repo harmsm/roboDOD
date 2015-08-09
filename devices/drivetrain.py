@@ -1,7 +1,10 @@
 
+import time
+
 import gpio
 from . import RobotDevice
 from messages import RobotMessage
+
 
 class SingleMotor(RobotDevice):
     """
@@ -165,8 +168,8 @@ class TwoMotorCatSteer(RobotDevice):
         self._burst_start_duty = burst_start_duty
         self._burst_start_delay = burst_start_delay
 
-        self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,pwm_duty_cycle)
-        self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,pwm_duty_cycle) 
+        self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,max_pwm_duty_cycle)
+        self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,max_pwm_duty_cycle) 
     
         self._control_dict = {"forward":self._forward,
                               "reverse":self._reverse,
