@@ -131,9 +131,9 @@ class TwoMotorCatSteer(RobotDevice):
     """ 
  
     def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
-                 pwm_frequency=100,max_pwm_duty_cycle=100,name=None,speed=0,
-                 max_speed=5,turn_speed=1,soft_control=True,burst_start_duty=100,
-                 burst_start_delay=0.1):
+                 pwm_frequency=100,max_pwm_duty_cycle=40,name=None,speed=0,
+                 max_speed=5,turn_speed=2,soft_control=True,burst_start_duty=100,
+                 burst_start_delay=0.15):
         """
         Initialize the motors.
     
@@ -162,7 +162,6 @@ class TwoMotorCatSteer(RobotDevice):
         self._turn_speed = turn_speed
 
         self._drive_speed = self._speed
-        self._speed_constant = self._max_pwm_duty_cycle/self._max_speed
 
         self._soft_control = soft_control
         self._burst_start_duty = burst_start_duty
@@ -179,6 +178,11 @@ class TwoMotorCatSteer(RobotDevice):
                               "right":self._right,
                               "setspeed":self._set_speed}
 
+    @property
+    def duty(self):
+     
+        self._speed_constant = self._max_pwm_duty_cycle/self._max_speed
+        return self._speed*self._speed_constant 
 
     def _burst_start(self,owner):
 
@@ -188,8 +192,9 @@ class TwoMotorCatSteer(RobotDevice):
         time.sleep(self._burst_start_delay)
    
         # Set to appropriate motor speed
-        self._left_motor.set_duty_cycle(self._speed,owner)
-        self._right_motor.set_duty_cycle(self._speed,owner)
+        self._left_motor.set_duty_cycle(self.duty,owner)
+        self._right_motor.set_duty_cycle(self.duty,owner)
+
 
     def _forward(self,owner):
 
@@ -268,8 +273,8 @@ class TwoMotorCatSteer(RobotDevice):
         else:
             self._speed = speed
 
-        self._left_motor.set_duty_cycle(self._speed*self._speed_constant,owner)
-        self._right_motor.set_duty_cycle(self._speed*self._speed_constant,owner)
+        self._left_motor.set_duty_cycle(self.duty,owner)
+        self._right_motor.set_duty_cycle(self.duty,owner)
                      
     def shutdown(self,owner):
 
