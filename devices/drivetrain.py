@@ -131,8 +131,8 @@ class TwoMotorCatSteer(RobotDevice):
     """ 
  
     def __init__(self,left_pin1,left_pin2,right_pin1,right_pin2,
-                 pwm_frequency=100,max_pwm_duty_cycle=40,name=None,speed=0,
-                 max_speed=5,turn_speed=2,soft_control=True,burst_start_duty=100,
+                 pwm_frequency=100,max_pwm_duty_cycle=35,name=None,speed=0,
+                 max_speed=5,turn_speed=1.5,soft_control=True,burst_start_duty=100,
                  burst_start_delay=0.15):
         """
         Initialize the motors.
@@ -271,7 +271,7 @@ class TwoMotorCatSteer(RobotDevice):
                                               source_device=self.name,
                                               message=["setspeed",{"speed":0}]))
         else:
-            self._speed = speed
+            self._drive_speed = speed
 
         self._left_motor.set_duty_cycle(self.duty,owner)
         self._right_motor.set_duty_cycle(self.duty,owner)
