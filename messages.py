@@ -6,7 +6,7 @@ fashion.
 __author__ = "Michael J. Harms"
 __date__ = "2014-12-29"
 
-import time, json
+import time, json, random
 
 class RobotMessage:
     """
@@ -29,6 +29,7 @@ class RobotMessage:
         self.source = source
         self.source_device = source_device
         self.delay_time = delay_time
+        self.message_id = int(random.random()*1e9)
         self.message = message
 
         self.minimum_time = self.arrival_time + self.delay_time
@@ -38,12 +39,13 @@ class RobotMessage:
         Parse a message string and use it to populate the message.
         """
 
-        self.arrival_time = int(time.time()*1000)
-
         #try:
         message_dict = json.loads(message_string)
         for k in message_dict.keys():
             self.__dict__[k] = message_dict[k]
+
+        # Wipe out arrival time from message itself
+        self.arrival_time = int(time.time()*1000)
         self.minimum_time = self.arrival_time + self.delay_time
         
         #except:

@@ -9,7 +9,7 @@ var LOG_LEVEL = 4;
 /* on the robot side. 
 /* ------------------------------------------------------------------------- */
 
-function RobotMessage(options){
+var RobotMessage = function(options){
 
     /* If options is undefined, make it {} */
     options = typeof options !== 'undefined' ? options : {};    
@@ -23,62 +23,55 @@ function RobotMessage(options){
     options.delay = typeof options.delay !== 'undefined' ? options.delay : 0.0;   
     options.message = typeof options.message !== 'undefined' ? options.message : "";     
 
-    /* Construct final RobotMessage class */
-    var msg  = { 
+    /* Class attributes */
+    this.arrival_time       = new Date().getTime();
 
-                /* Class attributes */
-                arrival_time       : new Date().getTime(),
+    this.destination        = options.destination;
+    this.destination_device = options.destination_device;
+    this.source             = options.source;
+    this.source_device      = options.source_device;
+    this.delay              = parseFloat(options.delay);
+    this.message_id         = Math.floor(Math.random()*1e9);
+    this.message            = options.message;
 
-                destination        : options.destination,
-                destination_device : options.destination_device,
-                source             : options.source,
-                source_device      : options.source_device,
-                delay              : parseFloat(options.delay),
-                message            : options.message,
+    this.minimum_time       = this.arrival_time + this.delay;
 
+    /* Method: return the message in proper string format */
+    this.asString = function(){
 
-                /* Method: return the message in proper string format */
-                asString : function(){
+        return JSON.stringify(this);
 
-                    return JSON.stringify(this);
+    };
 
-                },
+    /* Method: build a RobotMessage from a string */
+    this.fromString = function(message_string){
 
-                /* Method: build a RobotMessage from a string */
-                fromString : function(message_string){
+        var raw_msg = JSON.parse(message_string);
+        for (var key in raw_msg){
+            this[key] = raw_msg[key];
+        };
 
-                    this.arrival_time = new Date().getTime();
-                    var raw_msg = JSON.parse(message_string);
-                    for (var key in raw_msg){
-                        this[key] = raw_msg[key];
-                    };
+        if (isNaN(this.delay)){
+            this.delay = 0;
+            console.log("setting minimum time to 0...mangled delay? (",this.delay,")");
+        }
 
-                    if (isNaN(this.delay)){
-                        this.delay = 0;
-                        console.log("setting minimum time to 0...mangled delay? (",this.delay,")");
-                    }
+        this.arrival_time = new Date().getTime();
+        this.minimum_time = this.arrival_time + this.delay;
 
-                    this.minimum_time = this.arrival_time + this.delay;
+    };
 
-                },
+    /* Method: see if delay condition is met */
+    this.checkDelay = function(){
 
-                /* Method: see if delay condition is met */
-                checkDelay : function(){
+        if (Date().getTime() > this.minimum_time){
+            return true;
+        } else { 
+            return false;
+        }
 
-                    if (Date().getTime() > this.minimum_time){
-                        return true;
-                    } else { 
-                        return false;
-                    }
+    };
 
-                },
-                
-                minimum_time       : this.arrival_time + this.delay,
-
-                };
-
-    return msg;
-                
 }
 
 /* ------------------------------------------------------------------------- */
@@ -98,7 +91,7 @@ function recieveMessage(socket,msg){
         var message_string = msg;
   
         /* parse the message */
-        msg = RobotMessage();
+        msg = new RobotMessage();
         msg.fromString(message_string);
   
         /* update the last message recieved */
@@ -183,7 +176,7 @@ function main(){
     if(socket) {
 
         /* Turn on light saying things are connected */
-        sendMessage(socket,RobotMessage({destination_device:"client_connected_light",message:"on"}));
+        sendMessage(socket,new RobotMessage({destination_device:"client_connected_light",message:"on"}));
 
         /* Initialize robot to stopped, zero speed.*/
         setSpeed(0,socket);
@@ -196,22 +189,22 @@ function main(){
         /* Indicate that connection has been made on contoller user interface */
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        sendMessage(socket,RobotMessage({destination:"controller",
-                                         message:"connected to " + host}));
+        sendMessage(socket,new RobotMessage({destination:"controller",
+                                             message:"connected to " + host}));
 
         // Start measuring ranges
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,RobotMessage({destination_device:"forward_range",
-                                             message:"get"}));
+            sendMessage(socket,new RobotMessage({destination_device:"forward_range",
+                                                 message:"get"}));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     /* Or complain...  */
     } else {
-        sendMessage(socket,RobotMessage({destination:"controller",
-                                         destination_device:"warn",
-                                  message:"Could not connect to " + host + " socket"}));
+        sendMessage(socket,new RobotMessage({destination:"controller",
+                                             destination_device:"warn",
+                                             message:"Could not connect to " + host + " socket"}));
     }
 
 }
@@ -271,8 +264,8 @@ function terminalLogger(msg){
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    sendMessage(socket,RobotMessage({destination:"controller",
-                                     message:"connection closed."}));
+    sendMessage(socket,new RobotMessage({destination:"controller",
+                                         message:"connection closed."}));
 }
 
 
@@ -306,10 +299,10 @@ function parseDistanceMessage(msg){
 
             if ($("#steer_forward_button").hasClass("btn-current-steer")){
                 sendMessage(socket,
-                            RobotMessage({destination:"controller",
-                                          destination_device:"warn",
-                                          message:"Cannot move forward.  Forward range < "
-                                                  + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
+                            new RobotMessage({destination:"controller",
+                                              destination_device:"warn",
+                                              message:"Cannot move forward.  Forward range < "
+                                                      + RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
                 setSteer("coast",socket);
             }
 
@@ -410,16 +403,16 @@ function setSteer(steer,socket){
     // If we're trying to go forward, check for distance
     if ((steer == "forward") && ($("#forward_range").hasClass("range-too-close"))){
         sendMessage(socket,
-                    RobotMessage({destination:"controller",
-                                  destination_device:"warn",
-                                  message:"Cannot move forward.  Forward range < " +
-                                           RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
+                    new RobotMessage({destination:"controller",
+                                      destination_device:"warn",
+                                      message:"Cannot move forward.  Forward range < " +
+                                              RANGE_PROXIMITY_CUTOFF.toFixed(3) + " cm."}));
         steer = "coast";
     }
 
     // Tell the robot what to do
-    sendMessage(socket,RobotMessage({destination_device:"drivetrain",
-                                     message:steer}));
+    sendMessage(socket,new RobotMessage({destination_device:"drivetrain",
+                                         message:steer}));
 
 }
 
@@ -429,18 +422,18 @@ function setSpeed(speed,socket){
 
     // Tell the robot what to do.
 
-    sendMessage(socket,RobotMessage({destination_device:"drivetrain",
-                                     message:["setspeed",{"speed":Number(speed)}]}));
+    sendMessage(socket,new RobotMessage({destination_device:"drivetrain",
+                                         message:["setspeed",{"speed":Number(speed)}]}));
 }
 
 function setAttentionLight(socket){
 
     if ($("#attention_light_button").hasClass("attention-light-active")){
-        sendMessage(socket,RobotMessage({destination_device:"attention_light",
-                                         message:"off"}));
+        sendMessage(socket,new RobotMessage({destination_device:"attention_light",
+                                             message:"off"}));
     } else {
-        sendMessage(socket,RobotMessage({destination_device:"attention_light",
-                                         message:"flash"}));
+        sendMessage(socket,new RobotMessage({destination_device:"attention_light",
+                                             message:"flash"}));
     }
 
 }

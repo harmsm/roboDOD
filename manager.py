@@ -42,16 +42,16 @@ class DeviceManager(multiprocessing.Process):
 
         self.poll_interval = poll_interval
    
-        self.manager_id = int(random.random()*10000) + 1
+        self.manager_id = int(random.random()*1e9)
  
     def load_device(self,d):
         """
         Load a device into the DeviceManager.
         """
 
-        # load the device. d.connectManager will return None unless there is
+        # load the device. d.connect_manager will return None unless there is
         # a problem.        
-        status = d.connectManager(self.__class__.__name__)
+        status = d.connect_manager(self.__class__.__name__)
         if status != None:
             err = RobotMessage(destination_device="warn",
                                message=status)
@@ -77,7 +77,7 @@ class DeviceManager(multiprocessing.Process):
                                message="device {:s} is not connected".format(device_name))
             self.output_queue.put(err)
 
-        self.loaded_devices[index].disconnectManager()
+        self.loaded_devices[index].disconnect_manager()
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
 
@@ -92,8 +92,7 @@ class DeviceManager(multiprocessing.Process):
             message.destination_device = "dummy"
 
         try:
-            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message.message,
-                                                                                          int(message.arrival_time))
+            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)
         except KeyError:
             err = "device {:s} not loaded.".format(message.destination_device)
             self.output_queue.put(RobotMessage(destination_device="warn",message=err))
@@ -105,7 +104,7 @@ class DeviceManager(multiprocessing.Process):
         """
 
         for d in self.loaded_devices:
-            d.disconnectManager()
+            d.disconnect_manager()
 
     def shutdown(self):
         """
