@@ -33,7 +33,7 @@ class SingleMotor(RobotDevice):
 
         self._control_dict = {"forward":self._motor.forward,
                               "reverse":self._motor.reverse,
-                              "break":self._motor.brake,
+                              "brake":self._motor.brake,
                               "coast":self._motor.coast,
                               "set_dutycycle":self._motor.set_duty_cycle,
                               "set_freq":self._motor.set_frequency}
