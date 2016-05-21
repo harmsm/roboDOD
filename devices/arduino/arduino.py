@@ -1,5 +1,11 @@
+__description__ = \
+"""
+Base class for allowing communication between the raspberry pi robot controller
+and an arduino slave.
+"""
+__description__ = "Michael J. Harms"
+__date__ = "2016-05-20"
 
-from . import RobotDevice
 from messages import RobotMessage
 import serial, re
 
@@ -121,15 +127,19 @@ class CmdMessage:
         
 class ArduinoRobotDevice(RobotDevice):
     """
+    Base class for a RobotDevice that uses an arduino.
     """
 
-    def __init__(self,device_name=None,baud_rate=115200,device_tty=None,name=None):
+    def __init__(self,internal_device_name=None,baud_rate=115200,device_tty=None,name=None):
         """
+        The modified __init__ function attempts to connect to the arduino device.
+        It does so by matching "internal_device_name" with the name returned when the 
+        command "who_are_you" is sent over the CmdMessenger interface.
         """
 
         RobotDevice.__init__(self,name)
 
-        self._device_name = device_name
+        self._internal_device_name = internal_device_name
         self._device_tty = device_tty
 
         self.baud_rate = baud_rate
@@ -149,7 +159,7 @@ class ArduinoRobotDevice(RobotDevice):
 
         # Send message that we've found device (or not)
         if self.found_device:
-            message="{} connected on {} at {} baud.".format(self._device_name,
+            message="{} connected on {} at {} baud.".format(self._internal_device_name,
                                                             self._device_tty,
                                                             self.baud_rate))
             msg = RobotMessage(source_device=self.name,
@@ -157,7 +167,7 @@ class ArduinoRobotDevice(RobotDevice):
             self._messages.append(msg)
 
         else:
-            message="Could not find usb device identifying as {}".format(self._device_name)
+            message="Could not find usb device identifying as {}".format(self._internal_device_name)
 
             msg = RobotMessage(destination="warn",
                                source_device=self.name,
@@ -169,7 +179,7 @@ class ArduinoRobotDevice(RobotDevice):
     def _find_serial(self):
         """
         Search through attached serial devices until one reports the specified
-        device_name when probed by "who_are_you".
+        internal_device_name when probed by "who_are_you".
         """
 
         tty_devices = [d for d in os.listdir("/dev") if d.startswith("ttyA")]
@@ -183,9 +193,9 @@ class ArduinoRobotDevice(RobotDevice):
                 tmp_msg = CmdMessage(tmp_tty,self.baud_rate)
                 tmp_msg.write("who_are_you") 
                
-                reported_device_name = tmp_msg.read()
+                reported_internal_device_name = tmp_msg.read()
 
-                if reported_device_name[0][1] == self._device_name:
+                if reported_internal_device_name[0][1] == self._internal_device_name:
                     self._device_tty = tmp_tty
                     self._device_msg = tmp_msg
                     self.found_device = True
@@ -195,72 +205,3 @@ class ArduinoRobotDevice(RobotDevice):
                 pass
 
 
-def ArduinoDrivetrain(ArduinoRobotDevice):
-    """
-    """
-
-    def __init__(self,device_name=None,baud_rate=115200,device_tty=None,name=None):
-        """
-        """
-
-        super(ArduinoDrivetrain, self).__init__(device_name,baud_rate,device_tty,name)
-
-        self._control_dict = {"forward":self._forward,
-                              "reverse":self._reverse,
-                              "brake":self._brake,
-                              "coast":self._coast,
-                              "left":self._left,
-                              "right":self._right,
-                              "setspeed":self._set_speed}
-
-    def _forward(self,owner):
-
-        pass
-
-    def _reverse(self,owner):
-
-        pass
-        
-    def _left(self,owner):
-     
-        pass 
-
-    def _right(self,owner):
-
-        pass
-        
-    def _brake(self,owner):
-
-        pass
-        
-    def _coast(self,owner):
-
-        pass
-
-    def _set_speed(self,speed,owner):
-        """
-        Set the speed of the motors.
-        """
-    
-        # Make sure the speed set makes sense. 
-        if speed > self._max_speed or speed < 0:
-            err = "speed {:.3f} is invalid".format(speed)
-
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
-
-            # Be conservative.  Since we recieved a mangled speed command, set
-            # speed to 0.
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              source="robot",
-                                              source_device=self.name,
-                                              message=["setspeed",{"speed":0}]))
-        else:
-            self._drive_speed = speed
-
-        
-    def shutdown(self,owner):
-
-        pass 
