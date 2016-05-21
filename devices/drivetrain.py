@@ -5,7 +5,6 @@ import gpio
 from . import RobotDevice
 from messages import RobotMessage
 
-
 class SingleMotor(RobotDevice):
     """
     Single gpio.Motor under control of two GPIO pins.

@@ -6,8 +6,10 @@ and an arduino slave.
 __description__ = "Michael J. Harms"
 __date__ = "2016-05-20"
 
+import serial, re, os
+
+from devices import RobotDevice
 from messages import RobotMessage
-import serial, re
 
 class CmdMessage:
     """
@@ -161,7 +163,7 @@ class ArduinoRobotDevice(RobotDevice):
         if self.found_device:
             message="{} connected on {} at {} baud.".format(self._internal_device_name,
                                                             self._device_tty,
-                                                            self.baud_rate))
+                                                            self.baud_rate)
             msg = RobotMessage(source_device=self.name,
                                message=message)
             self._messages.append(msg)

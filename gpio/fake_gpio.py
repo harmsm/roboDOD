@@ -7,26 +7,34 @@ __author__ = "Michael J. Harms"
 __date__ = "2016-05-20"
 
 def output(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
 
 def input(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
     return 0
 
-def PWM(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+class PWM:
+
+    def __init__(self,*args,**kwargs):
+        print("WARNING! Using dummy GPIO interface.")
+
+    def start(self,*args,**kwargs):
+        print("WARNING! Using dummy GPIO interface.")
+
+    def stop(self,*args,**kwargs):
+        print("WARNING! Using dummy GPIO interface.")
 
 def cleanup(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
 
 def setup(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
 
 def setmode(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
 
 def setwarnings(*args,**kwargs):
-    print("WARNING! Using simulated GPIO interface.")
+    print("WARNING! Using dummy GPIO interface.")
 
 IN = 0
 OUT = 1
