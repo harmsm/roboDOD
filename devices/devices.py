@@ -8,7 +8,7 @@ __date__ = "2014-06-18"
 from random import random
 import time, threading, copy
 from messages import RobotMessage
-import gpio
+#import gpio
 
 class RobotDevice:
     """
@@ -104,20 +104,24 @@ class RobotDevice:
             self._append_message(RobotMessage(source_device=self.name,
                                               message=message.message))
 
-
         # ownership collision, try again on next pass
-        except gpio.OwnershipError:
+        #except gpio.OwnershipError:
+        #    self._append_message(RobotMessage(destination="robot",
+        #                                      destination_device=self.name,
+        #                                      message=message.message))
+
+        # Problem somewhere.
+        except:
+            err = "Command {:s} failed for {:s}. Trying again.".format(command,
+                                                                       self.__class__.__name__)
+
+            self._append_message(RobotMessage(destination_device="warn",
+                                              source_device=self.name,
+                                              message=err))
+
             self._append_message(RobotMessage(destination="robot",
                                               destination_device=self.name,
                                               message=message.message))
-
-        # Problem somewhere.
-        #except:
-        #    err = "Command {:s} failed for {:s}. Trying again.".format(command,
-        #                                                               self.__class__.__name__)
-        #    self._append_message(RobotMessage(destination_device="warn",
-        #                                      source_device=self.name,
-        #                                      message=err))
  
     def shutdown(self,owner):
         """

@@ -1,6 +1,6 @@
 
-import gpio
-from . import RobotDevice
+from . import gpio
+from devices import RobotDevice
 from messages import RobotMessage
 
 class IndicatorLight(RobotDevice):

@@ -2,7 +2,7 @@
 from messages import RobotMessage
 from . import ArduinoRobotDevice
 
-def ArduinoDrivetrain(ArduinoRobotDevice):
+class ArduinoDrivetrain(ArduinoRobotDevice):
     """
     """
 
