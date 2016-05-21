@@ -6,7 +6,7 @@ takes enough information in its __init__ function to specify the current
 hardware configuration.
 """
 
-from devices import drivetrain, rangefinder, led
+from devices import drivetrain, rangefinder, led, usb
 
 device_list = [
                drivetrain.TwoMotorCatSteer(left_pin1=15,left_pin2=13,right_pin1=11,right_pin2=7,name="drivetrain"),

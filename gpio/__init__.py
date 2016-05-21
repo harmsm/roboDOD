@@ -5,10 +5,9 @@ Should be thread-safe. Main class is "Pin" which controls access to a given GPIO
 pin in straightforward, thread-safe manner. 
 """
 
-__all__ = ["pin","motor","led","rangefinder"] 
+__all__ = ["pin","motor","led","rangefinder","fake_gpio"] 
 
 from .pin import Pin, global_pin_owners, global_pin_lock, OwnershipError
-
 from .motor import Motor
 from .led import LED
 from .rangefinder import UltrasonicRange
