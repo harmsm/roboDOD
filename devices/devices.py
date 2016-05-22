@@ -8,7 +8,6 @@ __date__ = "2014-06-18"
 from random import random
 import time, threading, copy
 from messages import RobotMessage
-#import gpio
 
 class RobotDevice:
     """
@@ -98,7 +97,14 @@ class RobotDevice:
 
             # No kwargs specified         
             else:
-                self._control_dict[message.message](owner=message.message_id)
+                try:
+                    self._control_dict[message.message](owner=message.message_id)
+                except:
+                    err = "Mangled command ({:s})".format(message.message)
+                    self._append_message(RobotMessage(destination_device="warn",
+                                                      source_device=self.name,
+                                                      message=err))
+
 
             # Send the message we just processed back to the controller.
             self._append_message(RobotMessage(source_device=self.name,
@@ -112,13 +118,6 @@ class RobotDevice:
 
         # Problem somewhere.
         except:
-            err = "Command {:s} failed for {:s}. Trying again.".format(command,
-                                                                       self.__class__.__name__)
-
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
-
             self._append_message(RobotMessage(destination="robot",
                                               destination_device=self.name,
                                               message=message.message))
