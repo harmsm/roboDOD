@@ -24,27 +24,39 @@ class ArduinoDrivetrain(ArduinoRobotDevice):
 
     def _forward(self,owner):
 
-        pass
+        self._queue.write(CMD_SET_SPEED,self._drive_speed,self._drive_speed)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set forward speed to {}".format(self._drive_speed)))
 
     def _reverse(self,owner):
 
-        pass
+        self._queue.write(CMD_SET_SPEED,-self._drive_speed,-self._drive_speed)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set reverse speed to {}".format(self._drive_speed)))
         
     def _left(self,owner):
      
-        pass 
+        self._queue.write(CMD_SET_SPEED,-self._drive_speed,self._drive_speed)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set left turn speed to {}".format(self._drive_speed)))
 
     def _right(self,owner):
 
-        pass
+        self._queue.write(CMD_SET_SPEED,self._drive_speed,-self._drive_speed)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set right turn speed to {}".format(self._drive_speed)))
         
     def _brake(self,owner):
 
-        pass
+        self._queue.write(CMD_SET_SPEED,0,0)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set motors to stopped"))
         
     def _coast(self,owner):
 
-        pass
+        self._queue.write(CMD_SET_SPEED,0,0)
+        self._messages.append(RobotMessage(source_device=self.name,
+                                           msg="Set motors to stopped"))
 
     def _set_speed(self,speed,owner):
         """

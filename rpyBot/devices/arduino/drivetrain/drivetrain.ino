@@ -15,8 +15,7 @@
 #include "CmdMessenger.h"
 
 /* Serial communications */
-const int BAUD_RATE = 9600;
-const char *DEVICE_ID = "MOTOR_SPEED_CONTROLLER";
+const int BAUD_RATE = 115200;
 
 /* Motor and sensor configuration */
 const int NUM_MOTORS = 2;                       // number of motors being controlled
@@ -50,33 +49,28 @@ double integral_error[2] = {0.0, 0.0};          // integrated error over time
  * --------------------------------------------------------------------------*/
 
 /* Attach a CmdMessenger instance to the default serial port */
-CmdMessenger c = CmdMessenger(Serial,',',';','/');
+CmdMessenger c = CmdMessenger(Serial,fld_separator=',',cmd_separator=';',esc_character='/');
 
 /* Define available CmdMessenger commands */
 enum {
-    who_are_you,
-    set_speed,
-    get_speed,
-    who_are_you_return,
-    set_speed_return,
-    get_speed_return,
-    communication_error,
+    cmd_set_speed,
+    cmd_get_speed,
+    cmd_set_speed_return,
+    cmd_get_speed_return,
+    cmd_error,
 };
 
-/* Callbacks */
-
-void on_unknown_command(void){
-    
-    /* If there is an error */
-
-    c.sendCmd(communication_error,"Command without callback.");
+/* Define callbacks for CmdMessenger commands */
+void attach_callbacks(void) { 
+  
+    // Attach callback methods
+    c.attach(on_unknown_command);
+    c.attach(cmd_set_speed,on_set_speed);
+    c.attach(cmd_get_speed,on_get_speed);
 }
 
-void on_who_are_you(void){
-    
-    /* Return the device */
-
-    c.sendCmd(who_are_you_return,DEVICE_ID);
+void on_unknown_command(void){
+    c.sendCmd(cmd_error,"Command without callback.");
 }
 
 void on_set_speed(void){
@@ -98,34 +92,21 @@ void on_set_speed(void){
     }
 
     /* Acknowledge command recieved successfully. */
-    c.sendCmd(set_speed_return,0);
+    c.sendCmd(cmd_set_speed_return,0);
 
 }
 
 void on_get_speed(void){
 
-    /* Get the current motor speed */
-
     int i;
-    c.sendCmdStart(get_speed_return);
+    c.sendCmdStart(cmd_get_speed_return);
     for (i = 0; i < NUM_MOTORS; i++){
-        c.sendCmdArg(motor_set_speed[i]);
         c.sendCmdArg(estimated_speed[i]*motor_set_direction[i]);
         c.sendCmdArg(motor_throttle[i]);   
     }
     c.sendCmdEnd();
 
 }
-
-/* Attach callback methods */
-void attach_callbacks(void) { 
-  
-    c.attach(on_unknown_command);
-    c.attach(who_are_you,on_who_are_you);
-    c.attach(set_speed,on_set_speed);
-    c.attach(get_speed,on_get_speed);
-}
-
 
 /* ----------------------------------------------------------------------------
  * Main motor and speedometer feedback loop
@@ -184,9 +165,9 @@ void speed_motor_feedback(void){
 
         /* If the motor direction is flipped, reset the integrators etc.  Assume
          * start from stop */
-        if (MOTOR_DIRECTION_PINS[i] != motor_set_direction[i]){
+        if (MOTOR_DIRECTION_PINS[i] != set_motor_direction[i]){
 
-            digitalWrite(MOTOR_DIRECTION_PINS[i],motor_set_direction[i]);
+            digitalWrite(MOTOR_DIRECTION_PINS[i],set_motor_direction[i]);
 
             estimated_speed[i] = 0.0;
             integral_error[i] = 0.0;
@@ -236,13 +217,6 @@ void speed_motor_feedback(void){
  * -------------------------------------------------------------------------- */
 
 void setup() {
-    
-    /* Initialize serial communication at BAUD_RATE bits per second: */
-    Serial.begin(BAUD_RATE);
-
-    /* Set up the CmdMessenger */
-    c.printLfCr(); 
-    attach_callbacks();
 
     /* Initialize the sensors and motors */
     for (int i = 0; i < NUM_MOTORS; i++){
@@ -263,6 +237,9 @@ void setup() {
         digitalWrite(MOTOR_DIRECTION_PINS[i],0);
 
     }
+
+    /* Initialize serial communication at BAUD_RATE bits per second: */
+    Serial.begin(BAUD_RATE);
 
 }
 

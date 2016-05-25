@@ -1,15 +1,6 @@
-__description__ = \
-"""
-Base class for allowing communication between the raspberry pi robot controller
-and an arduino slave.
-"""
-__description__ = "Michael J. Harms"
-__date__ = "2016-05-20"
 
-import serial, re, os
-
-from devices import RobotDevice
-from messages import RobotMessage
+import os
+import CmdMessenger
 
 class ArduinoRobotDevice(RobotDevice):
     """
@@ -33,10 +24,8 @@ class ArduinoRobotDevice(RobotDevice):
 
         # Try to connect to specified device
         if self._device_tty != None:
-            try:
-                self._arduino_messager = PyCmdMessenger.PyCmdMessenver(self._device_tty,
-                                                                       command_names=["who_are_you"],
-                                                                       baud_rate=self.baud_rate)
+            try:       
+                self._device_queue = CmdMessage(self._device_tty,self.baud_rate)
                 self.found_device = True
             except:
                 pass
@@ -79,17 +68,17 @@ class ArduinoRobotDevice(RobotDevice):
                 
                 tmp_tty = os.path.join("/dev",d)
                 tmp_msg = CmdMessage(tmp_tty,self.baud_rate)
-                tmp_msg.write("who_are_you") 
+                tmp_msg.write("who_are_you".encode('ascii')) 
                
                 reported_internal_device_name = tmp_msg.read()
 
                 if reported_internal_device_name[0][1] == self._internal_device_name:
+
                     self._device_tty = tmp_tty
-                    self._device_msg = tmp_msg
+                    self._device_queue = tmp_msg
                     self.found_device = True
                     break
 
             except (FileNotFoundError,PermissionError,TypeError):
                 pass
-
 

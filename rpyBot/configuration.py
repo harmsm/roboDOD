@@ -6,8 +6,9 @@ takes enough information in its __init__ function to specify the current
 hardware configuration.
 """
 
-from devices import arduino, gpio
+from rpyBot import devices
 
+from devices import arduino, gpio
 from devices.arduino import drivetrain
 from devices.gpio import rangefinder, led
 

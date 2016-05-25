@@ -1,7 +1,8 @@
-roboDOD
+rpyBot
 =======
 
-software for controlling an autonomous car via a raspberry pi
+Software for controlling a robot via a raspberry pi
+
 
 #Notes:
 
