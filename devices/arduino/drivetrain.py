@@ -6,7 +6,7 @@ class ArduinoDrivetrain(ArduinoRobotDevice):
     """
     """
 
-    def __init__(self,device_name=None,baud_rate=115200,device_tty=None,name=None):
+    def __init__(self,device_name=None,baud_rate=9600,device_tty=None,name=None):
         """
         """
 
@@ -19,6 +19,8 @@ class ArduinoDrivetrain(ArduinoRobotDevice):
                               "left":self._left,
                               "right":self._right,
                               "setspeed":self._set_speed}
+
+        self._arduino_messager = PyCmdMessage.PyCmdMessage(self.device_tty
 
     def _forward(self,owner):
 
@@ -66,6 +68,8 @@ class ArduinoDrivetrain(ArduinoRobotDevice):
                                               message=["setspeed",{"speed":0}]))
         else:
             self._drive_speed = speed
+
+        self._arduino_msg.send("set_speed",self._drive_speed)
 
         
     def shutdown(self,owner):
