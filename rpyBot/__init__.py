@@ -7,8 +7,7 @@ __date__ = "2016-05-23"
 __all__ = ["devices","configuration","manager","messages","webserver"]
 
 
-from . import devices, exceptions, messages
+from . import exceptions, messages
 
 from .messages import RobotMessage
 from .exceptions import BotError, BotOwnershipError, BotEmergencyError
-

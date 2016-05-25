@@ -8,7 +8,6 @@ import multiprocessing, time, random
 from copy import copy
 
 from rpyBot.messages import RobotMessage
-from rpyBot.devices import DummyDevice
 
 class DeviceManager(multiprocessing.Process):
     """
@@ -35,10 +34,6 @@ class DeviceManager(multiprocessing.Process):
 
         for d in device_list:
             self.load_device(d)
-
-        # Load a virtual device for dealing with commands that have no specified
-        # device
-        self.load_device(DummyDevice(name="dummy"))
 
         self.poll_interval = poll_interval
    
@@ -87,9 +82,10 @@ class DeviceManager(multiprocessing.Process):
         Send data to appropriate device in self.loaded_devices.
         """
 
-        # If there is no destination device specified, send it to dummy
+        # If there is no destination device specified, send it out to the
+        # output queue.  This basically just sends it to the user interface
         if message.destination_device == "":
-            message.destination_device = "dummy"
+            self.output_queue.put(message)
 
         try:
             self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)

@@ -9,13 +9,13 @@ from setuptools import setup, find_packages
 setup(name='rpyBot',
       packages=['rpyBot'],
       version='0.3',
-      description='Raspberry Py Bot: Software for controlling a raspberry pi based via (primarily) python',
+      description='Raspberry Py Bot: control a Raspberry Pi robot with python',
       author='Michael J. Harms',
       author_email='harmsm@gmail.com',
       url='https://github.com/harmsm/rpyBot',
       download_url='https://XX',
       zip_safe=False,
-      install_requires=["PyCmdMessenger"],
-      classifiers=['raspberry pi','robotics','os'],
-      entry_points = {'console_scripts': ['rpyBot = rpyBot.rpyBot:main']})
+      install_requires=["PyCmdMessenger","RPi.GPIO"],
+      classifiers=[],
+      entry_points = {'console_scripts': ['rpyBot = rpyBot.main:main']})
 
