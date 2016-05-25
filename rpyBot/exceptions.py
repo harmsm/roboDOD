@@ -27,3 +27,10 @@ class BotEmergencyError(Exception):
     """
 
     pass
+
+class BotConfigurationError(Exception):
+    """
+    Exception for some problem with the user's configuration of the system.
+    """
+
+    pass

@@ -6,12 +6,14 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
  
-import signal, sys, time
+import signal, sys, time, argparse, os
 
 from rpyBot.messages import RobotMessage
+from rpyBot.exceptions import BotConfigurationError
+
 from . import manager, webserver
 
-def main(argv=None):
+def start_bot(configuration):
     
     def signal_handler(signal, frame):
 
@@ -24,20 +26,44 @@ def main(argv=None):
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    if argv == None:
-        argv = sys.argv[1:]
-
     dm = manager.DeviceManager(configuration.device_list)
     dm.start()
  
     # wait a second before sending first task
     time.sleep(1)
     dm.input_queue.put(RobotMessage(destination="robot",
-                                    destination_device="dummy",
                                     message="initializing"))
 
     server = webserver.Webserver(dm)
     server.start()
 
+def main(argv=None):
+    """
+    """
+
+    if argv == None:
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(prog="rpyBot",description='Start an rpyBot')
+
+    parser.add_argument(dest='config_file',nargs=1,action='store',
+                        help='configuration python script')
+
+    args = parser.parse_args(argv)
+
+    config_file = args.config_file[0]
+
+    if not os.path.isfile(config_file):
+        err = "\n\nConfiguration file {} not found.\n\n".format(config_file)
+        raise BotConfigurationError(err)
+
+    # import configuration file as "configuration" module
+    configuration = __import__(config_file)
+
+    start_bot(configuration)
+
+
 if __name__ == "__main__":
+
     main()
+

@@ -8,7 +8,7 @@ __all__ = ["led",
            "drivetrain",
            "rangefinder"]
 
-from ._base import GPIORobotDevice
+from ._GPIORobotDevice import GPIORobotDevice
 
 from ._drivetrain import SingleMotor, TwoMotorDriveSteer, TwoMotorCatSteer
 from ._led import IndicatorLight

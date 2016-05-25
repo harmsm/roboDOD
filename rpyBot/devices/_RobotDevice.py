@@ -9,7 +9,6 @@ from random import random
 import time, threading, copy
 
 from rpyBot.messages import RobotMessage
-import rpyBot.exceptions
 
 class RobotDevice:
     """
@@ -152,23 +151,4 @@ class RobotDevice:
                 self._messages = []
 
             return m
-
-class DummyDevice(RobotDevice):
-    """
-    This is a virtual device for dealing with general messages that apply to 
-    all devices, etc.
-    """
-
-    def __init__(self,name=None):
-
-        RobotDevice.__init__(self,name)
-
-    def put(self,message):
-        """
-        This dummy function basically echoes the command back to the 
-        device manager.
-        """
-
-        self._append_message(RobotMessage(source_device=self.name,
-                                          message=message.message))
 

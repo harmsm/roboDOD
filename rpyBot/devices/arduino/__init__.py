@@ -7,8 +7,7 @@ manage the information passed over serial.
 __author__ = "Michael J. Harms"
 __date__ = "2016-05-20"
 
-__all__ = ["base",
-           "drivetrain"]
+__all__ = ["drivetrain"]
 
-from ._base import ArduinoRobotDevice
+from ._ArduinoRobotDevice import ArduinoRobotDevice
 from ._drivetrain import Drivetrain

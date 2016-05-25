@@ -1,7 +1,9 @@
 
+# import the gpio hardware interface.  This will die on non-raspberry pi
+# machines, so load a fake interface in.
 try:
     import RPi.GPIO as GPIO
-except ImportError:
+except (RuntimeError,ImportError):
     from . import fake_gpio as GPIO
     
 GPIO.setmode(GPIO.BOARD)

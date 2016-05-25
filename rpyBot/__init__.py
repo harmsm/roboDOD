@@ -10,4 +10,4 @@ __all__ = ["devices","configuration","manager","messages","webserver"]
 from . import exceptions, messages
 
 from .messages import RobotMessage
-from .exceptions import BotError, BotOwnershipError, BotEmergencyError
+from .exceptions import BotError, BotOwnershipError, BotEmergencyError, BotConfigurationError
