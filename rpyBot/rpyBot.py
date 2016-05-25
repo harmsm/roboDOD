@@ -7,7 +7,7 @@ __date__ = "2014-06-19"
 __usage__ = ""
  
 import signal, sys, time
-import manager, configuration, webserver, messages
+from rpyBot import manager, configuration, webserver, messages
  
 def main(argv=None):
     

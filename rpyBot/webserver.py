@@ -22,8 +22,9 @@ from tornado.options import define, options
 import datetime, time, sys, signal, logging
 import multiprocessing
 
-import configuration
-from messages import RobotMessage
+import rpyBot
+from rpyBot import configuration
+from rpyBot.messages import RobotMessage
  
 define("port", default=8081, help="run on the given port", type=int)
  
