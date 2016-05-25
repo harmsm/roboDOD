@@ -23,7 +23,6 @@ import datetime, time, sys, signal, logging
 import multiprocessing
 
 import rpyBot
-from rpyBot import configuration
 from rpyBot.messages import RobotMessage
  
 define("port", default=8081, help="run on the given port", type=int)

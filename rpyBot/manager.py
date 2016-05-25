@@ -7,8 +7,9 @@ __date__ = "2014-06-18"
 import multiprocessing, time, random
 from copy import copy
 
-from rpyBot import messages, devices
+import rpyBot
 
+from rpyBot import messages, devices
 from rpyBot.messages import RobotMessage
 from rpyBot.devices import DummyDevice
 

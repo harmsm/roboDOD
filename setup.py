@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 setup(name='rpyBot',
       packages=['rpyBot'],
       version='0.3',
-      description='RaspberryPyBot: Software for controlling a robot via python (with a javascript frontend)',
+      description='Raspberry Py Bot: Software for controlling a raspberry pi based via (primarily) python',
       author='Michael J. Harms',
       author_email='harmsm@gmail.com',
       url='https://github.com/harmsm/rpyBot',

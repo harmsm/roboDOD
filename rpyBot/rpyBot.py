@@ -7,8 +7,10 @@ __date__ = "2014-06-19"
 __usage__ = ""
  
 import signal, sys, time
+
+import rpyBot
 from rpyBot import manager, configuration, webserver, messages
- 
+
 def main(argv=None):
     
     def signal_handler(signal, frame):
@@ -24,16 +26,16 @@ def main(argv=None):
     if argv == None:
         argv = sys.argv[1:]
 
-    dm = manager.DeviceManager(configuration.device_list)
+    dm = rpyBot.manager.DeviceManager(configuration.device_list)
     dm.start()
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put(messages.RobotMessage(destination="robot",
-                                             destination_device="dummy",
-                                             message="initializing"))
+    dm.input_queue.put(rpyBot.messages.RobotMessage(destination="robot",
+                                                    destination_device="dummy",
+                                                    message="initializing"))
 
-    server = webserver.Webserver(dm)
+    server = rpyBot.webserver.Webserver(dm)
     server.start()
 
 if __name__ == "__main__":
