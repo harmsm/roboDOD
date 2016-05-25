@@ -1,22 +1,93 @@
 rpyBot
 =======
 
-Software for controlling a robot via a raspberry pi
+Software for controlling a raspberry pi robot using (mostly) python
+
+##Installation
+
+You can install via PyPi or by downloading the project from github:
+
+ * via pip: `pip3 install rpyBot`
+ * via github:
+   + `git clone https://github.com/harmsm/rpyBot`
+   + `cd rpyBot`
+   + `sudo python3 setup.py install`
+
+Both methods should automatically install the dependencies:
+
+ * [rpi.GPIO]()
+ * [tornado]()
+ * [PyCmdMessenger]()
+
+You'll probably want to clone the project no matter what, as the
+`rpyBot/example-configs/` directory has example robot configuration files that
+should be handy.
 
 
-#Notes:
+##Quick Start
 
-To use a device with i2c, you need to enable the I2C kernel modules and
-then copy the quick2wire and i2clibraries into the roboDOD/lowLevel 
-directory.  
+`rypBot` works by reading in a configuration file that describes what hardware 
+is attached to the raspberry pi, building an html/javascript front end to control
+that hardware [under development!], and then serving that website.  
 
-    cd roboDOD/lowLevel
-    git clone https://github.com/quick2wire/quick2wire-python-api.git
-    git clone https://bitbucket.org/thinkbowl/i2clibraries.git
+Consider a lame robot that is a single LED connected to GPIO pin 12. 
 
-roboDOD will do the rest, in terms of setting environment variables etc.
+The appropriate configuration file would be:
+  
+```python
+from rpyBot import devices
+from rpyBot.devices import gpio
 
-##Messaging specification
+device_list = [ 
+    gpio.IndicatorLight(control_pin=12,name="attention_light",frequency=1,duty_cycle=50),
+]
+```
+
+To start the robot up, you would `cd` into the directory with the configuration 
+file, and then execute:
+
+`sudo rpyBot configuration.py > log.txt`
+
+(You have to run as root so rpi.GPIO can access the gpio pins. )
+
+Assuming the raspberry pi is on a network with an ip address of 192.168.1.100, 
+go to a browser on some device that is on the same network and type:
+
+`192.168.1.100:8081`
+
+into the address bar. This should bring up a browser with a single button that, 
+when pushed, makes the light turn on.  
+
+To make things more interesting, start attaching other hardware to the gpio pins
+(or via USB/arduino, or ...) and then adding devices to the `device_list`.
+
+##Current device list
+
+ * rpyBot.devices.gpio
+   + IndicatorLight
+   + SingleMotor
+   + TwoMotorDriveSteer
+   + TwoMotorCatSteer
+   + RangeFinder
+ * rpyBot.devices.arduino
+   + TwoMotorCatSteer
+   + LIDAR [coming soon]
+ 
+##Creating a new device
+Devices are created as subclasses of the rpyBot.devices.RobotDevice.
+
+ * Hardware
+   + GPIO: rpyBot/rpyBot/devices/gpio/hardware/
+   + arduino/usb: rpyBot/arduino-code/
+
+ * Devices
+   + GPIO: inherit from rpyBot.devices.gpio.GPIORobotDevice. Devices are 
+     defined in rpyBot/rpyBot/devices/gpio
+   + arduino: inherit from rpyBot.devices.arduino.ArduinoRobotDevice. Devices
+     are defined in rpyBot/rpyBot/devices/arduino
+
+   
+##Asynchronous messaging specification
 
 Messages are passed in an asynchronous fashion with tornado input/output 
 queues using the RobotMessage class (implemented in both js and python). This
@@ -25,9 +96,9 @@ class allows specification of `destination` and `destination_device`,
 message and the `message` itself.  On the robot side, the main instance of
 the DeviceManager class routes each message to the appropriate device name. 
 For example, if `m.destination = "robot"` and `m.destination_device = 
-"attention_light"`, the DeviceManager will pass the message to the attention
-light attached to the robot.  On the controller side, messages are routed using
-the `sendMessage` and `recieveMessage` functions. 
+"attention_light"`, the DeviceManager will pass the message to the device named
+"attention_light" attached to the robot.  On the web controller side, messages
+are routed using the `sendMessage` and `recieveMessage` functions. 
 
 What actually goes through the socket is a string with the form:
 
