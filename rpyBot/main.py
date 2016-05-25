@@ -8,12 +8,13 @@ __usage__ = ""
  
 import signal, sys, time
 
-import rpyBot
-from rpyBot import manager, configuration, webserver, messages
+from rpyBot.messages import RobotMessage
+from . import manager, webserver
 
 def main(argv=None):
     
     def signal_handler(signal, frame):
+
         print("Shutting down...")
         sys.stdout.flush()
         
@@ -26,16 +27,16 @@ def main(argv=None):
     if argv == None:
         argv = sys.argv[1:]
 
-    dm = rpyBot.manager.DeviceManager(configuration.device_list)
+    dm = manager.DeviceManager(configuration.device_list)
     dm.start()
  
     # wait a second before sending first task
     time.sleep(1)
-    dm.input_queue.put(rpyBot.messages.RobotMessage(destination="robot",
-                                                    destination_device="dummy",
-                                                    message="initializing"))
+    dm.input_queue.put(RobotMessage(destination="robot",
+                                    destination_device="dummy",
+                                    message="initializing"))
 
-    server = rpyBot.webserver.Webserver(dm)
+    server = webserver.Webserver(dm)
     server.start()
 
 if __name__ == "__main__":

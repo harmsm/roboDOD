@@ -1,8 +1,8 @@
 
-from messages import RobotMessage
+from rpyBot.messages import RobotMessage
 from . import ArduinoRobotDevice
 
-class ArduinoDrivetrain(ArduinoRobotDevice):
+class Drivetrain(ArduinoRobotDevice):
     """
     """
 
@@ -20,7 +20,7 @@ class ArduinoDrivetrain(ArduinoRobotDevice):
                               "right":self._right,
                               "setspeed":self._set_speed}
 
-        self._arduino_messager = PyCmdMessage.PyCmdMessage(self.device_tty
+        self._arduino_messager = PyCmdMessage.PyCmdMessage(self.device_tty)
 
     def _forward(self,owner):
 

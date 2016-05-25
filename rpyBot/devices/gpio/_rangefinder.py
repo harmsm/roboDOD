@@ -1,11 +1,10 @@
 
 import time
 
-from . import gpio
-from devices import RobotDevice
-from messages import RobotMessage
+from . import hardware, GPIORobotDevice
+from rpyBot.messages import RobotMessage
 
-class RangeFinder(RobotDevice):
+class RangeFinder(GPIORobotDevice):
     """
     Class wrapping a GPIO range finder.
     """
@@ -20,9 +19,9 @@ class RangeFinder(RobotDevice):
         get: get the range, no kwargs
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._range_finder = gpio.UltrasonicRange(trigger_pin,echo_pin,timeout)
+        self._range_finder = hardware.UltrasonicRange(trigger_pin,echo_pin,timeout)
         self._control_dict = {"get":self._get_range}
         self._range_value = -10.0
         self._messages = []

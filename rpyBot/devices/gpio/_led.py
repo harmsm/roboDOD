@@ -1,9 +1,8 @@
 
-from . import gpio
-from devices import RobotDevice
-from messages import RobotMessage
+from . import hardware, GPIORobotDevice
+from rpyBot.messages import RobotMessage
 
-class IndicatorLight(RobotDevice):
+class IndicatorLight(GPIORobotDevice):
     """
     Class for controlling an indicator light.
     """
@@ -22,9 +21,9 @@ class IndicatorLight(RobotDevice):
         flash: flash and LED, kwargs = {seconds_to_flash: float}
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._led = gpio.LED(control_pin,frequency=frequency,duty_cycle=duty_cycle)
+        self._led = hardware.LED(control_pin,frequency=frequency,duty_cycle=duty_cycle)
 
         self._control_dict = {"on":self._led.on,
                               "off":self._led.off,

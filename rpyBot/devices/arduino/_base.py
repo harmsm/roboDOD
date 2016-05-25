@@ -8,8 +8,8 @@ __date__ = "2016-05-20"
 
 import serial, re, os
 
-from devices import RobotDevice
-from messages import RobotMessage
+from .. import RobotDevice
+from rpyBot.messages import RobotMessage
 
 class ArduinoRobotDevice(RobotDevice):
     """

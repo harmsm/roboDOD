@@ -1,13 +1,12 @@
 
 import time
 
-from . import gpio
-from devices import RobotDevice
-from messages import RobotMessage
+from . import hardware, GPIORobotDevice 
+from rpyBot.messages import RobotMessage
 
-class SingleMotor(RobotDevice):
+class SingleMotor(GPIORobotDevice):
     """
-    Single gpio.Motor under control of two GPIO pins.
+    Single hardware.Motor under control of two GPIO pins.
     """
  
     def __init__(self,pin1,pin2,duty_cycle=100,frequency=50,name=None):
@@ -24,9 +23,9 @@ class SingleMotor(RobotDevice):
         set_freq: set PWM frequency, kwargs = {"frequency":float}
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._motor = gpio.Motor(pin1,pin2,
+        self._motor = hardware.Motor(pin1,pin2,
                                  duty_cycle=duty_cycle,
                                  frequency=frequency)
 
@@ -45,7 +44,7 @@ class SingleMotor(RobotDevice):
         self._motor.shutdown(owner)
 
 
-class TwoMotorDriveSteer(RobotDevice):
+class TwoMotorDriveSteer(GPIORobotDevice):
     """
     Two GPIOMotors that work in synchrony.  The drive motor does forward and 
     reverse, the steer motor moves the wheels left and right.
@@ -70,10 +69,10 @@ class TwoMotorDriveSteer(RobotDevice):
         center: steer motor center, no kwargs
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._drive_motor = gpio.Motor(drive_pin1,drive_pin2)
-        self._steer_motor = gpio.Motor(steer_pin1,steer_pin2) 
+        self._drive_motor = hardware.Motor(drive_pin1,drive_pin2)
+        self._steer_motor = hardware.Motor(steer_pin1,steer_pin2) 
 
         self._control_dict = {"forward":self._drive_motor.forward,
                               "reverse":self._drive_motor.reverse,
@@ -122,9 +121,9 @@ class TwoMotorDriveSteer(RobotDevice):
         self._steer_motor.shutdown(owner)
         self._drive_motor.shutdown(owner)
 
-class TwoMotorCatSteer(RobotDevice):
+class TwoMotorCatSteer(GPIORobotDevice):
     """
-    Two gpio.Motor that work in synchrony as a cat drive.  The left and right
+    Two hardware.Motor that work in synchrony as a cat drive.  The left and right
     motors go forward and reverse independently.  Steering is achieved by 
     running one forward, the other in reverse.  
     """ 
@@ -152,7 +151,7 @@ class TwoMotorCatSteer(RobotDevice):
         setspeed: set the motor speed, kwargs = {"speed":float}
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
       
         self._pwm_frequency = pwm_frequency 
         self._max_pwm_duty_cycle = max_pwm_duty_cycle 
@@ -166,8 +165,8 @@ class TwoMotorCatSteer(RobotDevice):
         self._burst_start_duty = burst_start_duty
         self._burst_start_delay = burst_start_delay
 
-        self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,max_pwm_duty_cycle)
-        self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,max_pwm_duty_cycle) 
+        self._left_motor = hardware.Motor(left_pin1,left_pin2,pwm_frequency,max_pwm_duty_cycle)
+        self._right_motor = hardware.Motor(right_pin1,right_pin2,pwm_frequency,max_pwm_duty_cycle) 
     
         self._control_dict = {"forward":self._forward,
                               "reverse":self._reverse,

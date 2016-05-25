@@ -7,7 +7,9 @@ __date__ = "2014-06-18"
 
 from random import random
 import time, threading, copy
-from messages import RobotMessage
+
+from rpyBot.messages import RobotMessage
+import rpyBot.exceptions
 
 class RobotDevice:
     """
