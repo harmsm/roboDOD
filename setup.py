@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 # Need to add all dependencies to setup as we go!
 setup(name='rpyBot',
-      packages=['rpyBot'],
+      packages=find_packages(),
       version='0.3',
       description='Raspberry Py Bot: control a Raspberry Pi robot with python',
       author='Michael J. Harms',

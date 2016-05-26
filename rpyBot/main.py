@@ -58,9 +58,11 @@ def main(argv=None):
         raise BotConfigurationError(err)
 
     # import configuration file as "configuration" module
+    sys.path.append(os.getcwd())
+    #c = os.path.join(os.getcwd(),config_file)
     configuration = __import__(config_file)
 
-    start_bot(configuration)
+    #start_bot(configuration)
 
 
 if __name__ == "__main__":

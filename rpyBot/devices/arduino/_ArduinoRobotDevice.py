@@ -8,8 +8,8 @@ __date__ = "2016-05-20"
 
 import serial, re, os
 
+import PyCmdMessenger
 from .. import RobotDevice
-from rpyBot.messages import RobotMessage
 
 class ArduinoRobotDevice(RobotDevice):
     """
@@ -50,18 +50,12 @@ class ArduinoRobotDevice(RobotDevice):
             message="{} connected on {} at {} baud.".format(self._internal_device_name,
                                                             self._device_tty,
                                                             self.baud_rate)
-            msg = RobotMessage(source_device=self.name,
-                               message=message)
-            self._messages.append(msg)
+            self._send_msg(message)
 
         else:
             message="Could not find usb device identifying as {}".format(self._internal_device_name)
 
-            msg = RobotMessage(destination="warn",
-                               source_device=self.name,
-                               message=message)
-
-            self._messages.append(msg)  
+            self._send_msg(message,destination="warn")  
  
         
     def _find_serial(self):

@@ -2,7 +2,6 @@
 import time
 
 from . import hardware, GPIORobotDevice 
-from rpyBot.messages import RobotMessage
 
 class SingleMotor(GPIORobotDevice):
     """
@@ -257,17 +256,14 @@ class TwoMotorCatSteer(GPIORobotDevice):
         if speed > self._max_speed or speed < 0:
             err = "speed {:.3f} is invalid".format(speed)
 
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
+            self._send_msg(err,destination_device="warn")
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              source="robot",
-                                              source_device=self.name,
-                                              message=["setspeed",{"speed":0}]))
+            self._send_msg(["setspeed",{"speed":0}],
+                           destination="robot",
+                           destination_device=self.name)
+
         else:
             self._drive_speed = speed
 

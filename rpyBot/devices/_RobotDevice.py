@@ -5,10 +5,9 @@ The parent class RobotDevice.
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
+from rpyBot.messages import RobotMessage
 from random import random
 import time, threading, copy
-
-from rpyBot.messages import RobotMessage
 
 class RobotDevice:
     """
@@ -62,7 +61,7 @@ class RobotDevice:
         manager.
         """
 
-        return self._get_all_messages()
+        return self._get_allmessages()
     
 
     def put(self,message):
@@ -92,9 +91,7 @@ class RobotDevice:
                     self._control_dict[function_key](owner=message.message_id,**kwargs)
                 except:
                     err = "Mangled command ({:s})".format(message.message)
-                    self._append_message(RobotMessage(destination_device="warn",
-                                                      source_device=self.name,
-                                                      message=err))
+                    self._send_msg(err,destination_device="warn")
 
             # No kwargs specified         
             else:
@@ -102,26 +99,17 @@ class RobotDevice:
                     self._control_dict[message.message](owner=message.message_id)
                 except:
                     err = "Mangled command ({:s})".format(message.message)
-                    self._append_message(RobotMessage(destination_device="warn",
-                                                      source_device=self.name,
-                                                      message=err))
+                    self._send_msg(err,destination_device="warn")
 
 
             # Send the message we just processed back to the controller.
-            self._append_message(RobotMessage(source_device=self.name,
-                                              message=message.message))
+            self._send_msg(message.message)
 
-        # ownership collision, try again on next pass
-        #except gpio.OwnershipError:
-        #    self._append_message(RobotMessage(destination="robot",
-        #                                      destination_device=self.name,
-        #                                      message=message.message))
-
-        # Problem somewhere.
+        # Problem somewhere (THIS SENDS BACK TO THE DEVICE WITHOUT A DELAY!!!).
         except:
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              message=message.message))
+            self._send_msg(message.message,
+                           destination="robot",
+                           destination_device=self.name)
  
     def shutdown(self,owner):
         """
@@ -130,13 +118,27 @@ class RobotDevice:
 
         pass
 
-    def _append_message(self,msg):
+    def _send_msg(self,
+                  message,
+                  destination="controller",
+                  destination_device="",
+                  delay_time=0.0):
         """
-        Append to self._messages in a thread-safe manner.
+        Append to a RobotMessage instance to self._messages in a thread-safe
+        manner.  Automatically set the source and source device.  Take args
+        to set other attributes.
         """
 
         with self._lock:
-            self._messages.append(msg)
+
+            m = RobotMessage(destination=destination,
+                             destination_device=destination_device,
+                             source="robot",
+                             source_device=self.name,
+                             delay_time=delay_time,
+                             message=message)
+                             
+            self._messages.append(m)
 
     def _get_all_messages(self):
         """

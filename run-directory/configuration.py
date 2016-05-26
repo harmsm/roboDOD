@@ -7,7 +7,6 @@ hardware configuration.
 """
 
 import rpyBot
-from rpyBot import devices
 from rpyBot.devices import arduino, gpio
 
 device_list = [

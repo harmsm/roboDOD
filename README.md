@@ -85,7 +85,8 @@ Devices are created as subclasses of the rpyBot.devices.RobotDevice.
      defined in rpyBot/rpyBot/devices/gpio
    + arduino: inherit from rpyBot.devices.arduino.ArduinoRobotDevice. Devices
      are defined in rpyBot/rpyBot/devices/arduino
-
+ * Javascript interface
+   + 
    
 ##Asynchronous messaging specification
 

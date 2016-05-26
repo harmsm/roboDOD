@@ -2,7 +2,6 @@
 import time
 
 from . import hardware, GPIORobotDevice
-from rpyBot.messages import RobotMessage
 
 class RangeFinder(GPIORobotDevice):
     """
@@ -34,12 +33,9 @@ class RangeFinder(GPIORobotDevice):
         self._range_value = self._range_finder.get_range(owner)
 
         if (self._range_value < 0):
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message="range finder timed out"))
+            self._send_msg("range finder timed out",destination_device="warn")
         else:
-            self._append_message(RobotMessage(source_device=self.name,
-                                              message="{:.12f}".format(self._range_value)))
+            self._send_msg("{:.12f}".format(self._range_value))
 
     def shutdown(self,owner):
         """

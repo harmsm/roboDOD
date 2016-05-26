@@ -1,5 +1,4 @@
 
-from rpyBot.messages import RobotMessage
 from . import ArduinoRobotDevice
 
 class Drivetrain(ArduinoRobotDevice):
@@ -10,7 +9,7 @@ class Drivetrain(ArduinoRobotDevice):
         """
         """
 
-        super(ArduinoDrivetrain, self).__init__(device_name,baud_rate,device_tty,name)
+        super(ArduinoRobotDevice, self).__init__(device_name,baud_rate,device_tty,name)
 
         self._control_dict = {"forward":self._forward,
                               "reverse":self._reverse,
@@ -20,43 +19,35 @@ class Drivetrain(ArduinoRobotDevice):
                               "right":self._right,
                               "setspeed":self._set_speed}
 
-        self._arduino_messager = PyCmdMessage.PyCmdMessage(self.device_tty)
-
     def _forward(self,owner):
 
-        self._queue.write(CMD_SET_SPEED,self._drive_speed,self._drive_speed)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set forward speed to {}".format(self._drive_speed)))
+        self._arduino.write(CMD_SET_SPEED,self._drive_speed,self._drive_speed)
+        self._send_msg("Set forward speed to {}".format(self._drive_speed))
 
     def _reverse(self,owner):
 
-        self._queue.write(CMD_SET_SPEED,-self._drive_speed,-self._drive_speed)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set reverse speed to {}".format(self._drive_speed)))
+        self._arduino.write(CMD_SET_SPEED,-self._drive_speed,-self._drive_speed)
+        self._send_msg("Set reverse speed to {}".format(self._drive_speed))
         
     def _left(self,owner):
      
-        self._queue.write(CMD_SET_SPEED,-self._drive_speed,self._drive_speed)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set left turn speed to {}".format(self._drive_speed)))
+        self._arduino.write(CMD_SET_SPEED,-self._drive_speed,self._drive_speed)
+        self._send_msg("Set left turn speed to {}".format(self._drive_speed))
 
     def _right(self,owner):
 
-        self._queue.write(CMD_SET_SPEED,self._drive_speed,-self._drive_speed)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set right turn speed to {}".format(self._drive_speed)))
+        self._arduino.write(CMD_SET_SPEED,self._drive_speed,-self._drive_speed)
+        self._send_msg("Set right turn speed to {}".format(self._drive_speed))
         
     def _brake(self,owner):
 
-        self._queue.write(CMD_SET_SPEED,0,0)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set motors to stopped"))
+        self._arduino.write(CMD_SET_SPEED,0,0)
+        self._send_msg("Set motors to stopped")
         
     def _coast(self,owner):
 
-        self._queue.write(CMD_SET_SPEED,0,0)
-        self._messages.append(RobotMessage(source_device=self.name,
-                                           msg="Set motors to stopped"))
+        self._arduino.write(CMD_SET_SPEED,0,0)
+        self._send_msg("Set motors to stopped")
 
     def _set_speed(self,speed,owner):
         """
@@ -67,17 +58,13 @@ class Drivetrain(ArduinoRobotDevice):
         if speed > self._max_speed or speed < 0:
             err = "speed {:.3f} is invalid".format(speed)
 
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
+            self._send_msg(err,destination_device="warn")
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              source="robot",
-                                              source_device=self.name,
-                                              message=["setspeed",{"speed":0}]))
+            self._send_msg(["setspeed",{"speed":0}],
+                                 destination="robot",
+                                 destination_device=self.name)
         else:
             self._drive_speed = speed
 
