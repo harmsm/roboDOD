@@ -16,7 +16,13 @@ class ArduinoRobotDevice(RobotDevice):
     Base class for a RobotDevice that uses an arduino.
     """
 
-    def __init__(self,internal_device_name=None,baud_rate=9600,device_tty=None,name=None):
+    def __init__(self,
+                 internal_device_name=None,
+                 command_names=(),
+                 command_formats=(),
+                 baud_rate=9600,
+                 device_tty=None,
+                 name=None):
         """
         The modified __init__ function attempts to connect to the arduino device.
         It does so by matching "internal_device_name" with the name returned when the 
@@ -27,17 +33,24 @@ class ArduinoRobotDevice(RobotDevice):
 
         self._internal_device_name = internal_device_name
         self._device_tty = device_tty
+        self._command_names = command_names
+        self._command_formats = command_formats
+        self._baud_rate = baud_rate
+        self._device_tty=device_tty
 
-        self.baud_rate = baud_rate
         self.found_device = False
 
         # Try to connect to specified device
         if self._device_tty != None:
             try:
-                self._arduino_messager = PyCmdMessenger.PyCmdMessenver(self._device_tty,
-                                                                       command_names=["who_are_you"],
-                                                                       baud_rate=self.baud_rate)
+                self._arudino_board = PyCmdMessenger.ArduinoBoard(self._device_tty,
+                                                                  baud_rate=self._baud_rate)
+
+                self._arduino_msg = PyCmdMessenger.CmdMessenger(self._arduino_board,
+                                                                command_names=self._command_names,
+                                                                command_formats=self._command_formats)
                 self.found_device = True
+
             except:
                 pass
 
@@ -49,7 +62,7 @@ class ArduinoRobotDevice(RobotDevice):
         if self.found_device:
             message="{} connected on {} at {} baud.".format(self._internal_device_name,
                                                             self._device_tty,
-                                                            self.baud_rate)
+                                                            self._baud_rate)
             self._send_msg(message)
 
         else:
@@ -72,16 +85,19 @@ class ArduinoRobotDevice(RobotDevice):
             try:
                 
                 tmp_tty = os.path.join("/dev",d)
-                tmp_msg = CmdMessage(tmp_tty,self.baud_rate)
-                tmp_msg.write("who_are_you") 
-               
-                reported_internal_device_name = tmp_msg.read()
+                tmp_a = PyCmdMessenger.Arduino(tmp_tty,self.baud_rate)
+                tmp_msg = PyCmdMessenger.CmdMessenger(tmp_a,
+                                                      command_names=self.command_names,
+                                                      command_formats=self.command_formats)
 
-                if reported_internal_device_name[0][1] == self._internal_device_name:
-                    self._device_tty = tmp_tty
-                    self._device_msg = tmp_msg
-                    self.found_device = True
-                    break
+                tmp_msg.send("who_are_you") 
+                reported_name = tmp_msg.receive()
+                if reported_name != None:
+                    if reported_name[1][0] == self._internal_device_name:
+                        self._arduino_board = tmp_a
+                        self._arduino_msg = tmp_msg
+                        self.found_device = True
+                        break
 
             except (FileNotFoundError,PermissionError,TypeError):
                 pass

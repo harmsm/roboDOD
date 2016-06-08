@@ -15,9 +15,9 @@ You can install via PyPi or by downloading the project from github:
 
 Both methods should automatically install the dependencies:
 
- * [rpi.GPIO]()
- * [tornado]()
- * [PyCmdMessenger]()
+ * [rpi.GPIO](https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/)
+ * [tornado](http://www.tornadoweb.org/en/stable/)
+ * [PyCmdMessenger](https://github.com/harmsm/PyCmdMessenger)
 
 You'll probably want to clone the project no matter what, as the
 `rpyBot/example-configs/` directory has example robot configuration files that

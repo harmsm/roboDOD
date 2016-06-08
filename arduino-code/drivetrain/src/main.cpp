@@ -81,24 +81,33 @@ void on_who_are_you(void){
 
 void on_set_speed(void){
     
-    /* Set the motor speed based on what comes in over serial */
+    /* Set the motor speeds based on what comes in over serial */
 
     int i;
-    double tmp_read;
-    
-    for (i = 0; i < NUM_MOTORS; i++){
-        tmp_read = c.readDoubleArg();
+    float tmp_read;
 
+    /* Start reply ... */
+    c.sendCmdStart(set_speed_return);
+
+    for (i = 0; i < NUM_MOTORS; i++){
+
+        /* Get motor set speed */
+        tmp_read = c.readBinArg<float>();
+
+        /* Update the set speeds */
         motor_set_speed[i] = abs(tmp_read);
         if (tmp_read < 0){
             motor_set_direction[i] = 1;
         } else { 
             motor_set_direction[i] = 0;
         }
+
+        /* Ping back the new set speed */
+        c.sendCmdBinArg(tmp_read);
     }
 
-    /* Acknowledge command recieved successfully. */
-    c.sendCmd(set_speed_return,0);
+    /* Close command reply */
+    c.sendCmdEnd();
 
 }
 
@@ -109,9 +118,9 @@ void on_get_speed(void){
     int i;
     c.sendCmdStart(get_speed_return);
     for (i = 0; i < NUM_MOTORS; i++){
-        c.sendCmdArg(motor_set_speed[i]);
-        c.sendCmdArg(estimated_speed[i]*motor_set_direction[i]);
-        c.sendCmdArg(motor_throttle[i]);   
+        c.sendCmdBinArg(motor_set_speed[i]);
+        c.sendCmdBinArg(estimated_speed[i]*motor_set_direction[i]);
+        c.sendCmdBinArg(motor_throttle[i]);   
     }
     c.sendCmdEnd();
 
@@ -241,7 +250,6 @@ void setup() {
     Serial.begin(BAUD_RATE);
 
     /* Set up the CmdMessenger */
-    c.printLfCr(); 
     attach_callbacks();
 
     /* Initialize the sensors and motors */
