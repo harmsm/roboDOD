@@ -114,6 +114,9 @@ class DeviceManager(multiprocessing.Process):
             d.shutdown(self.manager_id)
 
     def run(self):
+    
+        self.output_queue.put(RobotMessage(destination="robot",
+                                           message="starting system"))
 
         while True: 
 

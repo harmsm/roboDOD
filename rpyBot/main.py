@@ -8,35 +8,31 @@ __usage__ = ""
  
 import signal, sys, time, argparse, os
 
-from rpyBot.messages import RobotMessage
-from rpyBot.exceptions import BotConfigurationError
-
-from . import manager, webserver
+from . import manager, exceptions
 
 def start_bot(configuration,verbosity=0):
-    
+    """
+    Start the bot up in a frame that can catch ctrl+c.
+    """   
+ 
     def signal_handler(signal, frame):
+        """
+        Function for catching ctrl+c.
+        """
 
         print("Shutting down...")
         sys.stdout.flush()
         
         dm.shutdown()
         time.sleep(5)
-        server.shutdown() 
 
+    # start up signal checking thread...
     signal.signal(signal.SIGINT, signal_handler)
 
-    dm = manager.DeviceManager(configuration.device_list,
-                               verbosity=verbosity)
+    # Start the device manager
+    dm = manager.DeviceManager(configuration.device_list,verbosity=verbosity)
     dm.start()
  
-    # wait a second before sending first task
-    time.sleep(1)
-    dm.input_queue.put(RobotMessage(destination="robot",
-                                    message="initializing"))
-
-    server = webserver.Webserver(dm)
-    server.start()
 
 def main(argv=None):
     """
@@ -60,7 +56,7 @@ def main(argv=None):
 
     if not os.path.isfile(config_file):
         err = "\n\nConfiguration file {} not found.\n\n".format(config_file)
-        raise BotConfigurationError(err)
+        raise exceptions.BotConfigurationError(err)
 
     # import configuration file as "configuration" module
     sys.path.append(os.getcwd())
