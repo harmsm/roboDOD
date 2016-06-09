@@ -121,10 +121,11 @@ class RobotDevice:
         pass
 
     def _queue_message(self,
-                       message,
+                       message="",
                        destination="controller",
                        destination_device="",
-                       delay_time=0.0):
+                       delay_time=0.0,
+                       msg_string=None):
         """
         Append to a RobotMessage instance to self._messages in a thread-safe
         manner.  Automatically set the source and source device.  Take args
@@ -139,6 +140,11 @@ class RobotDevice:
                              source_device=self.name,
                              delay_time=delay_time,
                              message=message)
+
+            # If msg_string is set to something besides None, parse that string
+            # and load into the RobotMessage instance.
+            if msg_string != None:
+                m.from_string(msg_string)
                              
             self._messages.append(m)
 
