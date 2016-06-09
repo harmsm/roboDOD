@@ -13,7 +13,7 @@ from rpyBot.exceptions import BotConfigurationError
 
 from . import manager, webserver
 
-def start_bot(configuration):
+def start_bot(configuration,verbosity=0):
     
     def signal_handler(signal, frame):
 
@@ -26,7 +26,8 @@ def start_bot(configuration):
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    dm = manager.DeviceManager(configuration.device_list)
+    dm = manager.DeviceManager(configuration.device_list,
+                               verbosity=verbosity)
     dm.start()
  
     # wait a second before sending first task
@@ -49,9 +50,13 @@ def main(argv=None):
     parser.add_argument(dest='config_file',nargs=1,action='store',
                         help='configuration python script')
 
+    parser.add_argument("--verbose",dest='verbose',action='store_true',
+                        help='be verbose')
+
     args = parser.parse_args(argv)
 
     config_file = args.config_file[0]
+    verbose = args.verbose
 
     if not os.path.isfile(config_file):
         err = "\n\nConfiguration file {} not found.\n\n".format(config_file)
@@ -59,10 +64,8 @@ def main(argv=None):
 
     # import configuration file as "configuration" module
     sys.path.append(os.getcwd())
-    #c = os.path.join(os.getcwd(),config_file)
     configuration = __import__(config_file[:-3])
-
-    start_bot(configuration)
+    start_bot(configuration,verbose)
 
 
 if __name__ == "__main__":

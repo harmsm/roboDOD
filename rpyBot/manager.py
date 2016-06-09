@@ -17,7 +17,7 @@ class DeviceManager(multiprocessing.Process):
     and output_queues. 
     """
  
-    def __init__(self,device_list=[],poll_interval=0.1):
+    def __init__(self,device_list=[],poll_interval=0.1,verbosity=0):
         """
         Initialize.  
 
@@ -27,6 +27,10 @@ class DeviceManager(multiprocessing.Process):
     
         multiprocessing.Process.__init__(self)
 
+        self.device_list = device_list
+        self.poll_interval = poll_interval
+        self.verbosity = verbosity
+
         self.input_queue = multiprocessing.Queue()
         self.output_queue = multiprocessing.Queue()
         self.loaded_devices = []
@@ -35,8 +39,6 @@ class DeviceManager(multiprocessing.Process):
         for d in device_list:
             self.load_device(d)
 
-        self.poll_interval = poll_interval
-   
         self.manager_id = int(random.random()*1e9)
  
     def load_device(self,d):
@@ -137,6 +139,9 @@ class DeviceManager(multiprocessing.Process):
                         continue
 
                     message = copy(m)
+
+                if self.verbosity > 0:
+                    print(message.as_string())
  
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
@@ -151,13 +156,15 @@ class DeviceManager(multiprocessing.Process):
 
                 device_output = d.get()
 
-                print(device_output[0].as_string())
-
                 for o in device_output:
+
                     if o.destination == "robot":
                         self.input_queue.put(o)
                     else:
                         self.output_queue.put(o)
+
+                    if self.verbosity > 0:
+                        print(o.as_string())
 
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)
