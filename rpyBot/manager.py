@@ -151,6 +151,8 @@ class DeviceManager(multiprocessing.Process):
 
                 device_output = d.get()
 
+                print(device_output[0].as_string())
+
                 for o in device_output:
                     if o.destination == "robot":
                         self.input_queue.put(o)

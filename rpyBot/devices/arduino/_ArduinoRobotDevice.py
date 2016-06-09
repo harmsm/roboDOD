@@ -18,8 +18,7 @@ class ArduinoRobotDevice(RobotDevice):
 
     def __init__(self,
                  internal_device_name=None,
-                 command_names=(),
-                 command_formats=(),
+                 commands=(),
                  baud_rate=9600,
                  device_tty=None,
                  name=None):
@@ -33,23 +32,23 @@ class ArduinoRobotDevice(RobotDevice):
 
         self._internal_device_name = internal_device_name
         self._device_tty = device_tty
-        self._command_names = command_names
-        self._command_formats = command_formats
+        self._commands = commands
         self._baud_rate = baud_rate
-        self._device_tty=device_tty
+        self._device_tty = device_tty
 
-        self.found_device = False
+        # Status that indicates whether the software device has actually found
+        # any hardware.
+        self._hardware_is_found = False
 
         # Try to connect to specified device
         if self._device_tty != None:
-            try:
-                self._arudino_board = PyCmdMessenger.ArduinoBoard(self._device_tty,
-                                                                  baud_rate=self._baud_rate)
 
-                self._arduino_msg = PyCmdMessenger.CmdMessenger(self._arduino_board,
-                                                                command_names=self._command_names,
-                                                                command_formats=self._command_formats)
-                self.found_device = True
+            try:
+                self._arudino_raw_serial = PyCmdMessenger.ArduinoBoard(self._device_tty,
+                                                                       baud_rate=self._baud_rate)
+                self._arduino_msg = PyCmdMessenger.CmdMessenger(self._arduino_raw_serial,
+                                                                self._commands)
+                self._hardware_is_found = True
 
             except:
                 pass
@@ -59,47 +58,59 @@ class ArduinoRobotDevice(RobotDevice):
             self._find_serial()
 
         # Send message that we've found device (or not)
-        if self.found_device:
+        if self._hardware_is_found:
             message="{} connected on {} at {} baud.".format(self._internal_device_name,
                                                             self._device_tty,
                                                             self._baud_rate)
-            self._send_msg(message)
+            self._queue_message(message)
 
         else:
             message="Could not find usb device identifying as {}".format(self._internal_device_name)
 
-            self._send_msg(message,destination="warn")  
- 
-        
+            self._queue_message(message,destination="warn")  
+
     def _find_serial(self):
         """
         Search through attached serial devices until one reports the specified
         internal_device_name when probed by "who_are_you".
         """
 
+        # if there is already a serial connection, move on
+        if self._hardware_is_found:
+            return
+
         tty_devices = [d for d in os.listdir("/dev") if d.startswith("ttyA")]
 
-        self.found_device = False
         for d in tty_devices:
 
             try:
-                
                 tmp_tty = os.path.join("/dev",d)
-                tmp_a = PyCmdMessenger.Arduino(tmp_tty,self.baud_rate)
-                tmp_msg = PyCmdMessenger.CmdMessenger(tmp_a,
-                                                      command_names=self.command_names,
-                                                      command_formats=self.command_formats)
+                a = PyCmdMessenger.ArduinoBoard(tmp_tty,self._baud_rate)
+                cmd = PyCmdMessenger.CmdMessenger(a,self._commands)
 
-                tmp_msg.send("who_are_you") 
-                reported_name = tmp_msg.receive()
-                if reported_name != None:
-                    if reported_name[1][0] == self._internal_device_name:
-                        self._arduino_board = tmp_a
-                        self._arduino_msg = tmp_msg
-                        self.found_device = True
-                        break
+                cmd.send("who_are_you")
+                reply = cmd.receive()
+                if reply != None:
+                    if reply[0] == "who_are_you_return":
+                        if reply[1][0] == self._internal_device_name:
+                            self._arduino_raw_serial = a
+                            self._arduino_msg = cmd
+                            self._device_tty = tmp_tty
+                            self._hardware_is_found = True
+                            break
 
-            except (FileNotFoundError,PermissionError,TypeError):
+            # something went wrong ... not a device we can use.
+            except IndexError:
                 pass
+
+
+    def _not_connected_callback(self):
+        """
+        This is a callback that should override other callbacks in the event 
+        that the device actually isn't connected.  
+        """
+
+        msg = "Device {} is not connected.".format(self.name)
+        self._queue_message(msg)
 
 

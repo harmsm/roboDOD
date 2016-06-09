@@ -38,10 +38,10 @@ class IndicatorLight(GPIORobotDevice):
         # Allows the client to turn on the LED for a fixed number of
         # seconds by adding a "turn off" message to the output queue.  This is
         # basically a "note to self: turn off the LED after delay time seconds"
-        self._send_msg("off",
-                        destination="robot",
-                        destination_device=self.name,
-                        delay_time=seconds_to_flash*1000)
+        self._queue_message("off",
+                            destination="robot",
+                            destination_device=self.name,
+                            delay_time=seconds_to_flash*1000)
        
  
     def shutdown(self,owner):

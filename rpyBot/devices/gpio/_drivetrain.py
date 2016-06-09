@@ -256,13 +256,13 @@ class TwoMotorCatSteer(GPIORobotDevice):
         if speed > self._max_speed or speed < 0:
             err = "speed {:.3f} is invalid".format(speed)
 
-            self._send_msg(err,destination_device="warn")
+            self._queue_msg(err,destination_device="warn")
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
-            self._send_msg(["setspeed",{"speed":0}],
-                           destination="robot",
-                           destination_device=self.name)
+            self._queue_msg(["setspeed",{"speed":0}],
+                            destination="robot",
+                            destination_device=self.name)
 
         else:
             self._drive_speed = speed

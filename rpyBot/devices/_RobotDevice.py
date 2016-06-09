@@ -61,11 +61,13 @@ class RobotDevice:
         manager.
         """
 
-        return self._get_allmessages()
+        return self._get_all_messages()
     
 
     def put(self,message):
         """
+        NEEDS TO BE UPDATED.  ACTUALLY ACCEPTS RobotMessage INSTANCE.
+    
         Send a message to the device, using callbacks defined in _control_dict.
         message.message should either string key for the call back or a list 
         containing the string key and then a dict of kwargs.  i.e.:
@@ -91,7 +93,7 @@ class RobotDevice:
                     self._control_dict[function_key](owner=message.message_id,**kwargs)
                 except:
                     err = "Mangled command ({:s})".format(message.message)
-                    self._send_msg(err,destination_device="warn")
+                    self._queue_message(err,destination_device="warn")
 
             # No kwargs specified         
             else:
@@ -99,17 +101,17 @@ class RobotDevice:
                     self._control_dict[message.message](owner=message.message_id)
                 except:
                     err = "Mangled command ({:s})".format(message.message)
-                    self._send_msg(err,destination_device="warn")
+                    self._queue_message(err,destination_device="warn")
 
 
             # Send the message we just processed back to the controller.
-            self._send_msg(message.message)
+            self._queue_message(message.message)
 
         # Problem somewhere (THIS SENDS BACK TO THE DEVICE WITHOUT A DELAY!!!).
         except:
-            self._send_msg(message.message,
-                           destination="robot",
-                           destination_device=self.name)
+            self._queue_message(message.message,
+                                destination="robot",
+                                destination_device=self.name)
  
     def shutdown(self,owner):
         """
@@ -118,11 +120,11 @@ class RobotDevice:
 
         pass
 
-    def _send_msg(self,
-                  message,
-                  destination="controller",
-                  destination_device="",
-                  delay_time=0.0):
+    def _queue_message(self,
+                       message,
+                       destination="controller",
+                       destination_device="",
+                       delay_time=0.0):
         """
         Append to a RobotMessage instance to self._messages in a thread-safe
         manner.  Automatically set the source and source device.  Take args

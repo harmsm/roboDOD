@@ -33,9 +33,9 @@ class RangeFinder(GPIORobotDevice):
         self._range_value = self._range_finder.get_range(owner)
 
         if (self._range_value < 0):
-            self._send_msg("range finder timed out",destination_device="warn")
+            self._queue_message("range finder timed out",destination_device="warn")
         else:
-            self._send_msg("{:.12f}".format(self._range_value))
+            self._queue_message("{:.12f}".format(self._range_value))
 
     def shutdown(self,owner):
         """
