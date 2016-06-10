@@ -128,10 +128,7 @@ class DeviceManager(multiprocessing.Process):
             # output ready.  If so, put the output into the queue for the next
             # pass.
             for d in self.loaded_devices:
-
-                device_output = d.get()
-                for o in device_output:
-                    self._queue_message(o)
+                self._queue_message(d.get())
 
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)
@@ -185,7 +182,7 @@ class DeviceManager(multiprocessing.Process):
             except exceptions.BotMessageError as err:
                 message = "Mangled message ({})".format(err.args[0])
                 self._queue_message(message,destination_device="warn")
-                continue
+                return None
 
         if self.verbosity > 0:
             print(message.as_string())

@@ -23,7 +23,6 @@ class RangeFinder(GPIORobotDevice):
         self._range_finder = hardware.UltrasonicRange(trigger_pin,echo_pin,timeout)
         self._control_dict = {"get":self._get_range}
         self._range_value = -10.0
-        self._messages = []
 
     def _get_range(self,owner):
         """
