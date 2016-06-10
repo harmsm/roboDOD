@@ -80,7 +80,7 @@ class WebInterface(RobotDevice):
         handlers, etc.
         """
     
-        super(WebInterfaceDevice, self).__init__(name) 
+        super(WebInterface, self).__init__(name) 
 
         # Private variables for handling the web socket 
         self._port = port
@@ -116,10 +116,12 @@ class WebInterface(RobotDevice):
         # check for robot output 
         self._mainLoop = tornado.ioloop.IOLoop.instance()
         self._scheduler = tornado.ioloop.PeriodicCallback(self._send_queued_to_client,10,
-                                                          io_loop=self.mainLoop)
+                                                          io_loop=self._mainLoop)
         # Start the io loop
         self._scheduler.start()
+        print("HERE")
         self._mainLoop.start()
+        print("HERE")
 
     def get(self):
         """
@@ -156,9 +158,9 @@ class WebInterface(RobotDevice):
         Shutdown the tornado instance.
         """
 
-        self.scheduler.stop()
-        self.mainLoop.stop()
-        self.httpServer.stop()
+        self._scheduler.stop()
+        self._mainLoop.stop()
+        self._httpServer.stop()
 
     def _send_queued_to_client(self):
         """
