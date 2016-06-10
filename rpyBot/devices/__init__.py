@@ -24,8 +24,8 @@ and device manager are on different threads but can both post messages.
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
-__all__ = ["arduino","gpio"]
+__all__ = ["arduino","gpio","webinterface"]
 
 from ._RobotDevice import RobotDevice
-from . import gpio, arduino
+from . import gpio, arduino, webinterface
 

@@ -12,7 +12,7 @@ class BotError(Exception):
     
     pass
 
-class BotOwnershipError(Exception):
+class BotOwnershipError(BotError):
     """
     Exception raised when two pieces of code are trying to access same piece 
     of hardware simultaneously.
@@ -20,7 +20,7 @@ class BotOwnershipError(Exception):
 
     pass
 
-class BotEmergencyError(Exception):
+class BotEmergencyError(BotError):
     """
     Exception for some error state that is so bad the bot should (probably) be
     dead-stopped.
@@ -28,14 +28,14 @@ class BotEmergencyError(Exception):
 
     pass
 
-class BotConfigurationError(Exception):
+class BotConfigurationError(BotError):
     """
     Exception for some problem with the user's configuration of the system.
     """
 
     pass
 
-class BotMessageError(Exception):
+class BotMessageError(BotError):
     """
     Exception for a messed up message of some sort.
     """

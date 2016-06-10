@@ -18,9 +18,9 @@ class DeviceManager(multiprocessing.Process):
     def __init__(self,device_list=[],poll_interval=0.1,verbosity=0):
         """
         Initialize.  
-
             device_list: list of RobotDevice instances
-            poll_interval: how often to poll messaging queues (in seconds)     
+            poll_interval: how often to poll messaging queues (in seconds) 
+            verbosity: whether or not to spew messages to standard out 
         """
     
         multiprocessing.Process.__init__(self)
@@ -51,7 +51,7 @@ class DeviceManager(multiprocessing.Process):
         else:
             self.loaded_devices.append(d)
             if d.name in list(self.loaded_devices_dict.keys()):
-                message="device {:s} already connected!".format(d.name)
+                message = "device {:s} already connected!".format(d.name)
                 self._queue_message(message,destination_device="warn")
             else:
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
@@ -70,7 +70,6 @@ class DeviceManager(multiprocessing.Process):
         self.loaded_devices[index].disconnect_manager()
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
-
 
     def message_to_device(self,message):
         """ 
@@ -166,7 +165,7 @@ class DeviceManager(multiprocessing.Process):
 
             message = m
 
-        if self.verbose:
+        if self.verbosity > 1:
             print(message.as_string())        
                      
         self.queue.put(message)

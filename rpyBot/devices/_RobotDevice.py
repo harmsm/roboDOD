@@ -7,7 +7,7 @@ __date__ = "2014-06-18"
 
 from rpyBot.messages import RobotMessage
 from random import random
-import time, threading, copy
+import time, threading, copy, multiprocessing
 
 class RobotDevice:
     """
@@ -29,7 +29,7 @@ class RobotDevice:
         self._manager = None
 
         self._lock = threading.RLock()
-        self._messages = []
+        self._messages = multiprocessing.Queue()
 
     def connect_manager(self,manager):
         """
@@ -66,18 +66,6 @@ class RobotDevice:
 
     def put(self,message):
         """
-        NEEDS TO BE UPDATED.  ACTUALLY ACCEPTS RobotMessage INSTANCE.
-    
-        Send a message to the device, using callbacks defined in _control_dict.
-        message.message should either string key for the call back or a list 
-        containing the string key and then a dict of kwargs.  i.e.:
-
-            message.message = "a_callback_key"
-        
-        OR
-
-            message.message = ["a_callback_key",{kwarg1:foo,kwarg2:bar...}]
-
         The hardware is controlled in a thread-safe fashion by using the unique
         message.message_id integer to declare the owner of the hardware 
         associated with the device.
@@ -103,15 +91,11 @@ class RobotDevice:
                     err = "Mangled command ({:s})".format(message.message)
                     self._queue_message(err,destination_device="warn")
 
-
             # Send the message we just processed back to the controller.
             self._queue_message(message.message)
 
-        # Problem somewhere (THIS SENDS BACK TO THE DEVICE WITHOUT A DELAY!!!).
         except:
-            self._queue_message(message.message,
-                                destination="robot",
-                                destination_device=self.name)
+            self._queue_message(message.message,destination_device="warn")
  
     def shutdown(self,owner):
         """
@@ -132,7 +116,8 @@ class RobotDevice:
         to set other attributes.
         """
 
-        with self._lock:
+
+        if type(message) != RobotMessage:
 
             m = RobotMessage(destination=destination,
                              destination_device=destination_device,
@@ -145,20 +130,14 @@ class RobotDevice:
             # and load into the RobotMessage instance.
             if msg_string != None:
                 m.from_string(msg_string)
+            message = m
                              
-            self._messages.append(m)
+        self._messages.put(message)
 
     def _get_all_messages(self):
         """
         Get all self._messages (wiping out existing) in a thread-safe manner.
         """
 
-        with self._lock:
-
-            m = []
-            if len(self._messages) > 0:
-                m = self._messages[:]
-                self._messages = []
-
-            return m
+        return self._messages.get()
 

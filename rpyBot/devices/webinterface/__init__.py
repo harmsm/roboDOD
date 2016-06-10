@@ -8,4 +8,4 @@ __date__ = "2016-06-09"
 
 __all__ = ["webinterface"]
 
-from .webinterface import WebInterfaceDevice
+from .webinterface import WebInterface

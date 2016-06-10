@@ -44,37 +44,37 @@ class Drivetrain(ArduinoRobotDevice):
             for k in self._control_dict.keys():
                 self._control_dict[k] = self._not_connected_callback
 
-    def _forward(self):
+    def _forward(self,owner=None):
 
         self.state = "forward"
         self._arduino_msg.send("set_speed",self._drive_speed,self._drive_speed)
         self._queue_message("Set forward speed to {}".format(self._drive_speed))
 
-    def _reverse(self):
+    def _reverse(self,owner=None):
 
         self.state = "reverse"
         self._arduino_msg.send("set_speed",-self._drive_speed,-self._drive_speed)
         self._queue_message("Set reverse speed to {}".format(self._drive_speed))
         
-    def _left(self):
+    def _left(self,owner=None):
     
         self.state = "left" 
         self._arduino_msg.send("set_speed",-self._drive_speed,self._drive_speed)
         self._queue_message("Set left turn speed to {}".format(self._drive_speed))
 
-    def _right(self):
+    def _right(self,owner=None):
 
         self.state = "right"
         self._arduino_msg.send("set_speed",self._drive_speed,-self._drive_speed)
         self._queue_message("Set right turn speed to {}".format(self._drive_speed))
         
-    def _brake(self):
+    def _brake(self,owner=None):
 
         self.state = "brake"
         self._arduino_msg.send("set_speed",0,0)
         self._queue_message("Set motors to stopped")
         
-    def _coast(self):
+    def _coast(self,owner=None):
 
         self.state = "coast"
         self._arduino_msg.send("set_speed",0,0)

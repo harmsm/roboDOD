@@ -104,13 +104,13 @@ class ArduinoRobotDevice(RobotDevice):
                 pass
 
 
-    def _not_connected_callback(self):
+    def _not_connected_callback(self,owner=None):
         """
         This is a callback that should override other callbacks in the event 
         that the device actually isn't connected.  
         """
 
         msg = "Device {} is not connected.".format(self.name)
-        self._queue_message(msg)
+        self._queue_message(msg,destination_device="warn")
 
 
