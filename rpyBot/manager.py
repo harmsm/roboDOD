@@ -4,17 +4,15 @@ __description__ = \
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
-import multiprocessing, time, random
-from copy import copy
+import multiprocessing, time, random, copy
 
 from rpyBot.messages import RobotMessage
 
 class DeviceManager(multiprocessing.Process):
     """
     Class for aynchronous communication and integration between all of the 
-    devices attached to the robot.  Inherits from a multiprocessing.Process
-    class, meaning that communication etc. can be polled via the input_queue
-    and output_queues. 
+    devices attached to the robot.  It uses a multiprocessing.Queue instance
+    to poll for messages. 
     """
  
     def __init__(self,device_list=[],poll_interval=0.1,verbosity=0):
@@ -31,8 +29,7 @@ class DeviceManager(multiprocessing.Process):
         self.poll_interval = poll_interval
         self.verbosity = verbosity
 
-        self.input_queue = multiprocessing.Queue()
-        self.output_queue = multiprocessing.Queue()
+        self.queue = multiprocessing.Queue()
         self.loaded_devices = []
         self.loaded_devices_dict = {}
 
@@ -50,15 +47,12 @@ class DeviceManager(multiprocessing.Process):
         # a problem.        
         status = d.connect_manager(self.__class__.__name__)
         if status != None:
-            err = RobotMessage(destination_device="warn",
-                               message=status)
-            self.output_queue.put(err)
+            self._queue_message(status,destination_device="warn")
         else:
             self.loaded_devices.append(d)
             if d.name in list(self.loaded_devices_dict.keys()):
-                err = RobotMessage(destination_device="warn",
-                                   message="device {:s} already connected!".format(d.name))
-                self.output_queue.put(err)
+                message="device {:s} already connected!".format(d.name)
+                self._queue_message(message,destination_device="warn")
             else:
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
        
@@ -70,9 +64,8 @@ class DeviceManager(multiprocessing.Process):
         try:       
             index = self.loaded_devices_dict[device_name] 
         except KeyError:
-            err = RobotMessage(destination_device="warn",
-                               message="device {:s} is not connected".format(device_name))
-            self.output_queue.put(err)
+            message = "device {:s} is not connected".format(device_name)
+            self._queue_message(message,destination_device="warn")
 
         self.loaded_devices[index].disconnect_manager()
         self.loaded_devices.pop(index)
@@ -84,16 +77,16 @@ class DeviceManager(multiprocessing.Process):
         Send data to appropriate device in self.loaded_devices.
         """
 
-        # If there is no destination device specified, send it out to the
-        # output queue.  This basically just sends it to the user interface
+        # If there is no specificeid destination device, send it to the 
+        # controller
         if message.destination_device == "":
-            self.output_queue.put(message)
+            message.destination_device = "controller"
 
         try:
             self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)
         except KeyError:
-            err = "device {:s} not loaded.".format(message.destination_device)
-            self.output_queue.put(RobotMessage(destination_device="warn",message=err))
+            err = "device {} not loaded.".format(message.destination_device)
+            self._queue_message(err,destination_device="warn")
        
     def close(self):
         """
@@ -114,61 +107,88 @@ class DeviceManager(multiprocessing.Process):
             d.shutdown(self.manager_id)
 
     def run(self):
-    
-        self.output_queue.put(RobotMessage(destination="robot",
-                                           message="starting system"))
+   
+        self._queue_message("starting system") 
 
         while True: 
 
-            # Look for incoming user interface request(s) and pipe them to
-            # appropriate device
-            if not self.input_queue.empty():
+            # Go through the queue and pipe messages to appropriate devices
+            if not self.queue.empty():
 
-                message = self.input_queue.get()
-    
-                # If this is a raw message string, convert it to an InternalMessage
-                # instance 
-                if type(message) == str:
-
-                    m = RobotMessage()
-
-                    # from_string only returns something if the input message was
-                    # mangled.  If it's mangled, put the output -- which is a 
-                    # RobotMessage instance warning of the mangling -- back into
-                    # the queue.
-                    status = m.from_string(message)
-                    if status != None:
-                        self.output_queue.put(status)
-                        continue
-
-                    message = copy(m)
-
-                if self.verbosity > 0:
-                    print(message.as_string())
+                # Get the next message
+                message = self._get_message()
  
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
                 if message.check_delay() == True:
                     self.message_to_device(message)
                 else:
-                    self.input_queue.put(message)
+                    self._queue_message(message)
                 
             # Rotate through the loaded devices and see if any of them have  
-            # output ready.  Route this output to the appropriate queue. 
+            # output ready.  If so, put the output into the queue for the next
+            # pass.
             for d in self.loaded_devices:
 
                 device_output = d.get()
-
                 for o in device_output:
-
-                    if o.destination == "robot":
-                        self.input_queue.put(o)
-                    else:
-                        self.output_queue.put(o)
-
-                    if self.verbosity > 0:
-                        print(o.as_string())
+                    self._queue_message(o)
 
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)
 
+    def _queue_message(self,
+                       message="",
+                       destination="robot",
+                       destination_device="",
+                       delay_time=0.0,
+                       msg_string=None):
+        """
+        Append to a RobotMessage instance to to the message queue.  If message
+        is already a RobotMessage, pass it through without modification.  If it
+        is a string, construct the RobotMessage, setting source to "manager".
+        """
+
+
+        if type(message) != RobotMessage:
+
+            m = RobotMessage(destination=destination,
+                             destination_device=destination_device,
+                             source="manager",
+                             source_device="",
+                             delay_time=delay_time,
+                             message=message)
+
+            # If msg_string is set to something besides None, parse that string
+            # and load into the RobotMessage instance.
+            if msg_string != None:
+                m.from_string(msg_string)
+
+            message = m
+
+        if self.verbose:
+            print(message.as_string())        
+                     
+        self.queue.put(message)
+
+    def _get_message(self):
+
+        message = self.queue.get()
+
+        # If this is a raw message string, convert it to an RobotMessage
+        # instance 
+        if type(message) == str:
+
+            try:
+                m = RobotMessage()
+                m.from_string(message)
+                message = m
+            except exceptions.BotMessageError as err:
+                message = "Mangled message ({})".format(err.args[0])
+                self._queue_message(message,destination_device="warn")
+                continue
+
+        if self.verbosity > 0:
+            print(message.as_string())
+
+        return message

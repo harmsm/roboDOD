@@ -7,6 +7,7 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-12-29"
 
 import time, json, random
+from . import exceptions
 
 class RobotMessage:
     """
@@ -39,9 +40,13 @@ class RobotMessage:
         Parse a message string and use it to populate the message.
         """
 
-        message_dict = json.loads(message_string)
-        for k in message_dict.keys():
-            self.__dict__[k] = message_dict[k]
+        try:
+            message_dict = json.loads(message_string)
+            for k in message_dict.keys():
+                self.__dict__[k] = message_dict[k]
+        except (ValueError,KeyError):
+            err = "Mangled message string ({})".format(message_string)
+            raise exceptions.BotMessageError(err)
 
         # Wipe out arrival time from message itself
         self.arrival_time = int(time.time()*1000)

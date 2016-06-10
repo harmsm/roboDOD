@@ -34,3 +34,10 @@ class BotConfigurationError(Exception):
     """
 
     pass
+
+class BotMessageError(Exception):
+    """
+    Exception for a messed up message of some sort.
+    """
+
+    pass
