@@ -28,15 +28,20 @@ class DeviceManager(multiprocessing.Process):
         self.device_list = device_list
         self.poll_interval = poll_interval
         self.verbosity = verbosity
-
         self.queue = multiprocessing.Queue()
+
         self.loaded_devices = []
         self.loaded_devices_dict = {}
 
-        for d in device_list:
+        self.manager_id = int(random.random()*1e9)
+
+    def start(self):
+        
+        multiprocessing.Process.start(self)
+
+        for d in self.device_list:
             self.load_device(d)
 
-        self.manager_id = int(random.random()*1e9)
  
     def load_device(self,d):
         """
@@ -55,7 +60,10 @@ class DeviceManager(multiprocessing.Process):
                 self._queue_message(message,destination_device="warn")
             else:
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
-       
+                print(d.name)
+                self.loaded_devices[-1].start()      
+            
+ 
     def unload_device(self,device_name):
         """
         Unload a device from the control of the DeviceManager.
@@ -67,6 +75,7 @@ class DeviceManager(multiprocessing.Process):
             message = "device {:s} is not connected".format(device_name)
             self._queue_message(message,destination_device="warn")
 
+        self.loaded_devices[index].stop()
         self.loaded_devices[index].disconnect_manager()
         self.loaded_devices.pop(index)
         self.loaded_devices_dict.pop(device_name)
@@ -162,7 +171,7 @@ class DeviceManager(multiprocessing.Process):
 
             message = m
 
-        if self.verbosity > 1:
+        if self.verbosity > 0:
             print(message.as_string())        
                      
         self.queue.put(message)

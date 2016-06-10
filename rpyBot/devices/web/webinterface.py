@@ -15,6 +15,7 @@ import tornado.websocket
 import tornado.gen
 
 from .. import RobotDevice
+from .. import gpio
 
 class IndexHandler(tornado.web.RequestHandler):
     """
@@ -46,7 +47,6 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         self._client_list.append(self)
         self._get_queue.put("LOCALMSG client added")
 
- 
     def on_message(self, message):
         """
         When a message comes from the client, append it to from_client_queue.
@@ -59,8 +59,8 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         When the socket connection is closed, dump the client.
         """
 
-        self._client_list.remove(self)
         self._get_queue.put("LOCALMSG removed client")
+        self._client_list.remove(self)
 
 class WebInterface(RobotDevice):
     """
@@ -74,7 +74,7 @@ class WebInterface(RobotDevice):
     http://niltoid.com/blog/raspberry-pi-arduino-tornado/
     """
 
-    def __init__(self,port=8081,name=None):
+    def __init__(self,port=8081,led_gpio=None,name=None):
         """
         Initialize a the class, starting up the input/output queues, the tornado
         handlers, etc.
@@ -84,8 +84,16 @@ class WebInterface(RobotDevice):
 
         # Private variables for handling the web socket 
         self._port = port
+
+        self._led = None
+        if led_gpio != None:
+            self._led = gpio.LEDIndicatorLight(led_gpio)
+        #    self._led.put("off")
+             
         self._client_list = []
 
+    def start(self):
+        
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
         self._put_queue = multiprocessing.Queue()
@@ -113,15 +121,12 @@ class WebInterface(RobotDevice):
         self._queue_message("Listening on port: {:d}".format(self._port))
 
         # Typical tornado.ioloop initialization, except we added a callback in which we 
-        # check for robot output 
-        self._mainLoop = tornado.ioloop.IOLoop.instance()
+        self._mainLoop = tornado.ioloop.IOLoop.current()
         self._scheduler = tornado.ioloop.PeriodicCallback(self._send_queued_to_client,10,
                                                           io_loop=self._mainLoop)
         # Start the io loop
         self._scheduler.start()
-        print("HERE")
         self._mainLoop.start()
-        print("HERE")
 
     def get(self):
         """
@@ -170,7 +175,13 @@ class WebInterface(RobotDevice):
 
         msg_list = self._put_queue.get()
 
+        #if len(self._client_list) > 0:
+        #    self._led.put("on") # <-- SHOULD SEND ROBOT MESSGE HERE
+        #else:
+        #    self._led.put("off")
+
         # Send all messages to the client
         for c in self._client_list:
             for m in msg_list:
                 c.write_message(m.as_string())
+

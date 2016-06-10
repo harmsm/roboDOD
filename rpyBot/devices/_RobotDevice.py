@@ -141,3 +141,10 @@ class RobotDevice:
 
         return self._messages.get()
 
+    def start(self):
+        """
+        Dummy function, in case device needs to be started up.
+        """
+
+        pass
+

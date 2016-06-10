@@ -15,6 +15,8 @@ def start_bot(configuration,verbosity=0):
     Start the bot up in a frame that can catch ctrl+c.
     """   
  
+    dm = manager.DeviceManager(configuration.device_list,verbosity=verbosity)
+
     def signal_handler(signal, frame):
         """
         Function for catching ctrl+c.
@@ -30,7 +32,6 @@ def start_bot(configuration,verbosity=0):
     signal.signal(signal.SIGINT, signal_handler)
 
     # Start the device manager
-    dm = manager.DeviceManager(configuration.device_list,verbosity=verbosity)
     dm.start()
  
 
@@ -61,7 +62,7 @@ def main(argv=None):
     # import configuration file as "configuration" module
     sys.path.append(os.getcwd())
     configuration = __import__(config_file[:-3])
-    start_bot(configuration,verbose)
+    start_bot(configuration,verbosity=verbose)
 
 
 if __name__ == "__main__":
