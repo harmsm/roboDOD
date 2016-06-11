@@ -139,8 +139,9 @@ class DeviceManager(multiprocessing.Process):
             # output ready.  If so, put the output into the queue for the next
             # pass.
             for d in self.loaded_devices:
-                print(d.name)
-                self._queue_message(d.get())
+                msgs = d.get()
+                for m in msgs:   
+                    self._queue_message(m)
 
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)

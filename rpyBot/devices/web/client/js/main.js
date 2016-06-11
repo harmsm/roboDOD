@@ -124,7 +124,9 @@ function sendMessage(socket,message,allow_repeat){
        allow_repeat: bool that says whether we can pass same message twice in 
                      a row.
     */
-   
+ 
+    console.log(message);
+  
     /* By default, allow repeats */
     allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
 
@@ -214,7 +216,7 @@ function terminalLogger(msg){
     /* Log commands in the user interface terminal */
     
     /* write to broswer console for debugging purposes */ 
-    //console.log(msg);
+    console.log(msg);
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
