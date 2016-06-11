@@ -11,8 +11,6 @@ for root, dirs, files in os.walk("client"):
     for file in files:
         client_files.append(os.path.join(root,file))
 
-
-
 # Need to add all dependencies to setup as we go!
 setup(name='rpyBot',
       packages=find_packages(),

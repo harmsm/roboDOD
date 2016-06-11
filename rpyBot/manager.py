@@ -28,10 +28,11 @@ class DeviceManager(multiprocessing.Process):
         self.device_list = device_list
         self.poll_interval = poll_interval
         self.verbosity = verbosity
-        self.queue = multiprocessing.Queue()
+        self.queue = [] #multiprocessing.Queue()
 
         self.loaded_devices = []
         self.loaded_devices_dict = {}
+        self.device_processes = []
 
         self.manager_id = int(random.random()*1e9)
 
@@ -39,10 +40,7 @@ class DeviceManager(multiprocessing.Process):
         
         multiprocessing.Process.start(self)
 
-        for d in self.device_list:
-            self.load_device(d)
 
- 
     def load_device(self,d):
         """
         Load a device into the DeviceManager.
@@ -60,10 +58,10 @@ class DeviceManager(multiprocessing.Process):
                 self._queue_message(message,destination_device="warn")
             else:
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
-                print(d.name)
-                self.loaded_devices[-1].start()      
-            
- 
+
+                self.device_processes.append(multiprocessing.Process(target=self.loaded_devices[-1].start))
+                self.device_processes[-1].start()
+           
     def unload_device(self,device_name):
         """
         Unload a device from the control of the DeviceManager.
@@ -85,15 +83,16 @@ class DeviceManager(multiprocessing.Process):
         Send data to appropriate device in self.loaded_devices.
         """
 
-        # If there is no specificeid destination device, send it to the 
-        # controller
-        if message.destination_device == "":
-            message.destination_device = "controller"
+        # if the message is sent to the virtual "warn" device, forward this to
+        # the controller
+        if message.destination_device == "warn":
+            self.loaded_devices[self.loaded_devices_dict["controller"]].put(message)
+            return
 
         try:
             self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)
         except KeyError:
-            err = "device {} not loaded.".format(message.destination_device)
+            err = "device \"{}\" not loaded.".format(message.destination_device)
             self._queue_message(err,destination_device="warn")
        
     def close(self):
@@ -115,13 +114,16 @@ class DeviceManager(multiprocessing.Process):
             d.shutdown(self.manager_id)
 
     def run(self):
+
+        for d in self.device_list:
+            self.load_device(d)
    
         self._queue_message("starting system") 
 
         while True: 
 
             # Go through the queue and pipe messages to appropriate devices
-            if not self.queue.empty():
+            if not len(self.queue) > 0: #.empty():
 
                 # Get the next message
                 message = self._get_message()
@@ -132,11 +134,12 @@ class DeviceManager(multiprocessing.Process):
                     self.message_to_device(message)
                 else:
                     self._queue_message(message)
-                
+            
             # Rotate through the loaded devices and see if any of them have  
             # output ready.  If so, put the output into the queue for the next
             # pass.
             for d in self.loaded_devices:
+                print(d.name)
                 self._queue_message(d.get())
 
             # Wait poll_interval seconds before checking queues again
@@ -153,7 +156,6 @@ class DeviceManager(multiprocessing.Process):
         is already a RobotMessage, pass it through without modification.  If it
         is a string, construct the RobotMessage, setting source to "manager".
         """
-
 
         if type(message) != RobotMessage:
 
@@ -172,13 +174,16 @@ class DeviceManager(multiprocessing.Process):
             message = m
 
         if self.verbosity > 0:
-            print(message.as_string())        
+            message.pretty_print()      
                      
-        self.queue.put(message)
+        self.queue.append(message) #.put(message)
 
     def _get_message(self):
+ 
+        if len(self.queue) == 0:
+            return
 
-        message = self.queue.get()
+        message = self.queue.pop(0) #.get()
 
         # If this is a raw message string, convert it to an RobotMessage
         # instance 
@@ -194,6 +199,6 @@ class DeviceManager(multiprocessing.Process):
                 return None
 
         if self.verbosity > 0:
-            print(message.as_string())
+            message.pretty_print()
 
         return message

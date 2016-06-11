@@ -29,7 +29,7 @@ class RobotDevice:
         self._manager = None
 
         self._lock = threading.RLock()
-        self._messages = multiprocessing.Queue()
+        self._messages = [] #multiprocessing.Queue()
 
     def connect_manager(self,manager):
         """
@@ -131,15 +131,23 @@ class RobotDevice:
             if msg_string != None:
                 m.from_string(msg_string)
             message = m
-                             
-        self._messages.put(message)
+                
+        with self._lock:
+            self._messages.append(message)             
+        #self._messages.put(message)
 
     def _get_all_messages(self):
         """
         Get all self._messages (wiping out existing) in a thread-safe manner.
         """
 
-        return self._messages.get()
+        with self._lock:
+            m = self._messages[:]
+            self._messages = []
+
+        return m
+    
+        #return None #self._messages.get()
 
     def start(self):
         """

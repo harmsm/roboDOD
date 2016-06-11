@@ -94,7 +94,7 @@ class WebInterface(RobotDevice):
              
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
-        self._put_queue = [] #multiprocessing.Queue()
+        self._put_queue = [] 
 
     def start(self):
 
@@ -133,8 +133,10 @@ class WebInterface(RobotDevice):
         """
 
         # Grab messages from the _get_queue (populated by tornado socket)
-        from_client = self._get_queue.get()
-        
+        from_client = []
+        if not self._get_queue.empty():
+            from_client = self._get_queue.get() 
+ 
         # put these messages into the normal RobotDevice._messages queue,
         # converting to RobotMessage instances in the process.  The LOCALMSG
         # is a hack that lets the tornado client use the queue to send a status
@@ -157,7 +159,6 @@ class WebInterface(RobotDevice):
  
         with self._lock:
             self._put_queue.append(message) 
-        #self._put_queue.put(message)
 
     def shutdown(self,owner=None):
         """
@@ -174,7 +175,6 @@ class WebInterface(RobotDevice):
         last checked, and then send them over the socket to the client.
         """
 
-        #msg_list = self._put_queue.get()
         with self._lock:
             msg_list = self._put_queue[:]
             self._put_queue = []
