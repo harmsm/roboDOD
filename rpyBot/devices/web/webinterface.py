@@ -17,13 +17,16 @@ import tornado.gen
 from .. import RobotDevice
 from .. import gpio
 
+X = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/"
+client_list = []
+
 class IndexHandler(tornado.web.RequestHandler):
     """
     Serve main page over http.
     """
 
     def get(self):
-        self.render('client/index.html')
+        self.render(X + 'client/index.html')
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
@@ -37,14 +40,13 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
 
         tornado.websocket.WebSocketHandler.__init__(self,*args,**kwargs)
         self._get_queue = self.application.settings.get("queue")
-        self._client_list = local_client_list
 
     def open(self):
         """
         If a new client connects, record it.
         """
 
-        self._client_list.append(self)
+        client_list.append(self)
         self._get_queue.put("LOCALMSG client added")
 
     def on_message(self, message):
@@ -60,7 +62,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         """
 
         self._get_queue.put("LOCALMSG removed client")
-        self._client_list.remove(self)
+        client_list.remove(self)
 
 class WebInterface(RobotDevice):
     """
@@ -90,27 +92,24 @@ class WebInterface(RobotDevice):
             self._led = gpio.LEDIndicatorLight(led_gpio)
         #    self._led.put("off")
              
-        self._client_list = []
-
-    def start(self):
-        
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
-        self._put_queue = multiprocessing.Queue()
+        self._put_queue = [] #multiprocessing.Queue()
+
+    def start(self):
 
         # Initailize handler 
         app = tornado.web.Application(
             handlers=[
                 (r"/", IndexHandler),
                 (r"/ws", WebSocketHandler),
-                (r"/(.*)",tornado.web.StaticFileHandler,{'path':"client/"}),
-                (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':"client/js/"}),
-                (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':"client/css/"}),
-                (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':"client/fonts/"}),
-                (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':"client/img/"}),
+                (r"/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/"}),
+                (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/js/"}),
+                (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/css/"}),
+                (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/fonts/"}),
+                (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/img/"}),
             ],
             queue=self._get_queue,
-            local_client_list=self._client_list
         )
 
         # Create http server
@@ -121,7 +120,7 @@ class WebInterface(RobotDevice):
         self._queue_message("Listening on port: {:d}".format(self._port))
 
         # Typical tornado.ioloop initialization, except we added a callback in which we 
-        self._mainLoop = tornado.ioloop.IOLoop.current()
+        self._mainLoop = tornado.ioloop.IOLoop.instance()
         self._scheduler = tornado.ioloop.PeriodicCallback(self._send_queued_to_client,10,
                                                           io_loop=self._mainLoop)
         # Start the io loop
@@ -147,7 +146,7 @@ class WebInterface(RobotDevice):
                 self._queue_message(msg_string=g)
 
         # Now do a standard "get" and return all of the messages 
-        return self._get_all_messages
+        return self._get_all_messages()
         
     def put(self,message):
         """
@@ -155,8 +154,10 @@ class WebInterface(RobotDevice):
         it into a queue that will be stuffed down the tornado web socket to 
         the client the next time it is polled.
         """
-  
-        self._put_queue.put(message)
+ 
+        with self._lock:
+            self._put_queue.append(message) 
+        #self._put_queue.put(message)
 
     def shutdown(self,owner=None):
         """
@@ -173,15 +174,18 @@ class WebInterface(RobotDevice):
         last checked, and then send them over the socket to the client.
         """
 
-        msg_list = self._put_queue.get()
-
+        #msg_list = self._put_queue.get()
+        with self._lock:
+            msg_list = self._put_queue[:]
+            self._put_queue = []
+        
         #if len(self._client_list) > 0:
         #    self._led.put("on") # <-- SHOULD SEND ROBOT MESSGE HERE
         #else:
         #    self._led.put("off")
 
         # Send all messages to the client
-        for c in self._client_list:
+        for c in client_list:
             for m in msg_list:
                 c.write_message(m.as_string())
 
