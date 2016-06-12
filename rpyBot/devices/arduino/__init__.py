@@ -9,5 +9,5 @@ __date__ = "2016-05-20"
 
 __all__ = ["drivetrain"]
 
-from ._ArduinoRobotDevice import ArduinoRobotDevice
-from ._drivetrain import Drivetrain
+from .arduino_device import ArduinoRobotDevice
+from .drivetrain import Drivetrain

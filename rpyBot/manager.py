@@ -8,7 +8,7 @@ import multiprocessing, time, random, copy
 
 from rpyBot.messages import RobotMessage
 
-class DeviceManager(multiprocessing.Process):
+class DeviceManager: #(multiprocessing.Process):
     """
     Class for aynchronous communication and integration between all of the 
     devices attached to the robot.  It uses a multiprocessing.Queue instance
@@ -23,7 +23,7 @@ class DeviceManager(multiprocessing.Process):
             verbosity: whether or not to spew messages to standard out 
         """
     
-        multiprocessing.Process.__init__(self)
+        #multiprocessing.Process.__init__(self)
 
         self.device_list = device_list
         self.poll_interval = poll_interval

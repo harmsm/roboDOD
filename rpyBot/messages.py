@@ -61,7 +61,11 @@ class RobotMessage:
 
     def pretty_print(self):
 
-        s1 = "{}.{} --> {}.{} @ {}\n".format(self.source,self.source_device,self.destination,self.destination_device,self.arrival_time)
+        s1 = "{}.{} --> {}.{} @ {}\n".format(self.source,
+                                             self.source_device,
+                                             self.destination,
+                                             self.destination_device,
+                                             self.arrival_time)
         s2 = "... Message: {}\n".format(self.message)
 
         print(s1 + s2)

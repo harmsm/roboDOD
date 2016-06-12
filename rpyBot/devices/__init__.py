@@ -26,6 +26,6 @@ __date__ = "2014-06-18"
 
 __all__ = ["arduino","gpio","web"]
 
-from ._RobotDevice import RobotDevice
+from .robot_device import RobotDevice
 from . import gpio, arduino, web
 

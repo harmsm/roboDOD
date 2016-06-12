@@ -8,9 +8,9 @@ __all__ = ["led",
            "drivetrain",
            "rangefinder"]
 
-from ._GPIORobotDevice import GPIORobotDevice
+from .gpio_device import GPIORobotDevice
 
-from ._drivetrain import SingleMotor, TwoMotorDriveSteer, TwoMotorCatSteer
-from ._led import IndicatorLight
-from ._rangefinder import RangeFinder
+from .drivetrain import SingleMotor, TwoMotorDriveSteer, TwoMotorCatSteer
+from .led import IndicatorLight
+from .rangefinder import RangeFinder
 
