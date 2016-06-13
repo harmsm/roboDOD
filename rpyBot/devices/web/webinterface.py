@@ -6,7 +6,7 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
  
-import multiprocessing
+import multiprocessing, copy
 
 import tornado.httpserver
 import tornado.ioloop
@@ -94,7 +94,7 @@ class WebInterface(RobotDevice):
              
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
-        self._put_queue = [] 
+        self._put_queue = multiprocessing.Queue()
 
     def start(self):
 
@@ -154,9 +154,9 @@ class WebInterface(RobotDevice):
         it into a queue that will be stuffed down the tornado web socket to 
         the client the next time it is polled.
         """
- 
-        with self._lock:
-            self._put_queue.append(message) 
+
+        self._put_queue.put(message)
+
 
     def stop(self,owner=None):
         """
@@ -173,17 +173,10 @@ class WebInterface(RobotDevice):
         last checked, and then send them over the socket to the client.
         """
 
-        with self._lock:
-            msg_list = self._put_queue[:]
-            self._put_queue = []
-        
-        #if len(self._client_list) > 0:
-        #    self._led.put("on") # <-- SHOULD SEND ROBOT MESSGE HERE
-        #else:
-        #    self._led.put("off")
-
-        # Send all messages to the client
-        for c in client_list:
-            for m in msg_list:
+        if not self._put_queue.empty():
+            m = self._put_queue.get()
+    
+            # Send all messages to the client
+            for c in client_list:
                 c.write_message(m.as_string())
 
