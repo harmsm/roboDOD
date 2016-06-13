@@ -1,12 +1,12 @@
 __description__ = \
 """
-Classes for seving a web site for a remote interface to the robot.
+Class for seving a web site for a remote interface to the robot.
 """
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
  
-import multiprocessing, copy
+import multiprocessing, os
 
 import tornado.httpserver
 import tornado.ioloop
@@ -14,19 +14,29 @@ import tornado.web
 import tornado.websocket
 import tornado.gen
 
-from .. import RobotDevice
-from .. import gpio
-
-X = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/"
-client_list = []
+from .. import RobotDevice, gpio
 
 class IndexHandler(tornado.web.RequestHandler):
     """
     Serve main page over http.
     """
 
+    def __init__(self,*args,**kwargs):
+
+        # Get the index file
+        self._client_path = kwargs["client_path"]
+        self._index_file = os.path.join(self._client_path,"index.html")
+
+        # Get rid of the extra kwarg and call the path inint function
+        kwargs.pop("client_path")
+        super(IndexHandler, self).__init__(*args,**kwargs)
+        
     def get(self):
-        self.render(X + 'client/index.html')
+        """
+        Serve the main page over http.
+        """
+
+        self.render(self._index_file)
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
@@ -38,6 +48,11 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         Initialize the class.
         """
 
+        # Client list is a pointer to a list held in the device that is the
+        # list of clients
+        self._client_list = kwargs["client_list"]
+        kwargs.pop("client_list")
+
         tornado.websocket.WebSocketHandler.__init__(self,*args,**kwargs)
         self._get_queue = self.application.settings.get("queue")
 
@@ -46,7 +61,7 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         If a new client connects, record it.
         """
 
-        client_list.append(self)
+        self._client_list.append(self)
         self._get_queue.put("LOCALMSG client added")
 
     def on_message(self, message):
@@ -62,21 +77,21 @@ class WebSocketHandler(tornado.websocket.WebSocketHandler):
         """
 
         self._get_queue.put("LOCALMSG removed client")
-        client_list.remove(self)
+        self._client_list.remove(self)
 
 class WebInterface(RobotDevice):
     """
     A WebInterfaceDevice that serves an http/javascript website that can be used
     to control the robot remotely.  
 
-    It uses a tornado instance with multiple threads + polling of an input 
-    queue.  The original code (much morphed by now!) came from a fantastic 
-    tornado/raspberry pi tutorial by asaeed:
+    It uses a tornado instance and polling to pass messages back and forth.  The
+    original code (much morphed by now!) came from a fantastic tornado/raspberry
+    pi tutorial by asaeed:
 
     http://niltoid.com/blog/raspberry-pi-arduino-tornado/
     """
 
-    def __init__(self,port=8081,led_gpio=None,name=None):
+    def __init__(self,port=8081,led_gpio=None,name=None,web_path=None):
         """
         Initialize a the class, starting up the input/output queues, the tornado
         handlers, etc.
@@ -87,27 +102,36 @@ class WebInterface(RobotDevice):
         # Private variables for handling the web socket 
         self._port = port
 
+        # Stub.  This will (someday) directly associate an led with the device 
+        # so the device has a status light. 
         self._led = None
         if led_gpio != None:
             self._led = gpio.LEDIndicatorLight(led_gpio)
-        #    self._led.put("off")
-             
+            
+        self._web_path = web_path
+        if self._web_path == None:
+            self._web_path = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/client/"
+ 
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
         self._put_queue = multiprocessing.Queue()
+        self._client_list = []
 
     def start(self):
+        """
+        Start up the tornado server.
+        """
 
         # Initailize handler 
         app = tornado.web.Application(
             handlers=[
-                (r"/", IndexHandler),
-                (r"/ws", WebSocketHandler),
-                (r"/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/"}),
-                (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/js/"}),
-                (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/css/"}),
-                (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/fonts/"}),
-                (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':X + "client/img/"}),
+                (r"/", IndexHandler,{'client_path':self._web_path}),
+                (r"/ws", WebSocketHandler,{"client_list":self._client_list}),
+                (r"/(.*)",tornado.web.StaticFileHandler,{'path':self._web_path}),
+                (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':os.path.join(self._web_path,"js")}),
+                (r"/css/(.*)",tornado.web.StaticFileHandler,{'path':os.path.join(self._web_path,"css")}),
+                (r"/fonts/(.*)",tornado.web.StaticFileHandler,{'path':os.path.join(self._web_path,"fonts")}),
+                (r"/img/(.*)",tornado.web.StaticFileHandler,{'path':os.path.join(self._web_path,"img")}),
             ],
             queue=self._get_queue,
         )
@@ -129,7 +153,7 @@ class WebInterface(RobotDevice):
 
     def get(self):
         """
-        Poll the client queue for messages to pass on to the manager.
+        Poll the client queue for messages.
         """
 
         # Grab messages from the _get_queue (populated by tornado socket)
@@ -150,9 +174,9 @@ class WebInterface(RobotDevice):
         
     def put(self,message):
         """
-        Modified "put" call that, rather than calling a callback, just sticks 
-        it into a queue that will be stuffed down the tornado web socket to 
-        the client the next time it is polled.
+        Modified version of RobotDevice put method that sticks the message into
+        a queue that will be stuffed down the tornado web socket to the client
+        the next time it is polled.
         """
 
         self._put_queue.put(message)
@@ -160,11 +184,11 @@ class WebInterface(RobotDevice):
 
     def stop(self,owner=None):
         """
-        Shutdown the tornado instance.
+        Stop the tornado instance.
         """
 
-        self._scheduler.stop()
         self._mainLoop.stop()
+        self._scheduler.stop()
         self._httpServer.stop()
 
     def _send_queued_to_client(self):
@@ -177,6 +201,6 @@ class WebInterface(RobotDevice):
             m = self._put_queue.get()
     
             # Send all messages to the client
-            for c in client_list:
+            for c in self._client_list:
                 c.write_message(m.as_string())
 
