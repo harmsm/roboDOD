@@ -39,7 +39,7 @@ class RobotMessage:
         """
         Parse a message string and use it to populate the message.
         """
-
+        
         try:
             message_dict = json.loads(message_string)
             for k in message_dict.keys():

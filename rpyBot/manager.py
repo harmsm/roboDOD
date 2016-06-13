@@ -38,8 +38,7 @@ class DeviceManager: #(multiprocessing.Process):
 
     def start(self):
         
-        multiprocessing.Process.start(self)
-
+        self.run() #multiprocessing.Process.start(self)
 
     def load_device(self,d):
         """

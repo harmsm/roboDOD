@@ -106,8 +106,8 @@ class RobotDevice:
 
     def _queue_message(self,
                        message="",
-                       destination="controller",
-                       destination_device="",
+                       destination_device="controller",
+                       destination="",
                        delay_time=0.0,
                        msg_string=None):
         """

@@ -133,19 +133,17 @@ class WebInterface(RobotDevice):
         """
 
         # Grab messages from the _get_queue (populated by tornado socket)
-        from_client = []
         if not self._get_queue.empty():
             from_client = self._get_queue.get() 
- 
-        # put these messages into the normal RobotDevice._messages queue,
-        # converting to RobotMessage instances in the process.  The LOCALMSG
-        # is a hack that lets the tornado client use the queue to send a status
-        # string without first converting it into a RobotMessage instance.
-        for g in from_client:
-            if g.startswith("LOCALMSG"):
-                self._queue_message(q[9:])
+
+            # put these messages into the normal RobotDevice._messages queue,
+            # converting to RobotMessage instances in the process.  The LOCALMSG
+            # is a hack that lets the tornado client use the queue to send a status
+            # string without first converting it into a RobotMessage instance.
+            if from_client.startswith("LOCALMSG"):
+                self._queue_message("".join(from_client[9:]))
             else:
-                self._queue_message(msg_string=g)
+                self._queue_message(msg_string=from_client)
 
         # Now do a standard "get" and return all of the messages 
         return self._get_all_messages()

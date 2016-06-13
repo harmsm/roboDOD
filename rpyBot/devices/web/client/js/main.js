@@ -147,6 +147,8 @@ function sendMessage(socket,message,allow_repeat){
             /* Wait until the state of the socket is ready and send message */
             waitForSocketConnection(socket, function(){
 
+                console.log("HERE")
+                console.log(message_string)
                 socket.send(message_string);
 
                 /* update the last message sent */
