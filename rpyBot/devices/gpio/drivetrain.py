@@ -35,12 +35,12 @@ class SingleMotor(GPIORobotDevice):
                               "set_dutycycle":self._motor.set_duty_cycle,
                               "set_freq":self._motor.set_frequency}
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shut down the motor.
         """
 
-        self._motor.shutdown(owner)
+        self._motor.stop(owner)
 
 
 class TwoMotorDriveSteer(GPIORobotDevice):
@@ -115,10 +115,10 @@ class TwoMotorDriveSteer(GPIORobotDevice):
         self._steer_motor.coast(owner)
         self._current_steer_motor_state = 0
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         
-        self._steer_motor.shutdown(owner)
-        self._drive_motor.shutdown(owner)
+        self._steer_motor.stop(owner)
+        self._drive_motor.stop(owner)
 
 class TwoMotorCatSteer(GPIORobotDevice):
     """
@@ -270,9 +270,9 @@ class TwoMotorCatSteer(GPIORobotDevice):
         self._left_motor.set_duty_cycle(self.duty,owner)
         self._right_motor.set_duty_cycle(self.duty,owner)
                      
-    def shutdown(self,owner):
+    def stop(self,owner):
 
-        self._left_motor.shutdown(owner)
-        self._right_motor.shutdown(owner)
+        self._left_motor.stop(owner)
+        self._right_motor.stop(owner)
         
 

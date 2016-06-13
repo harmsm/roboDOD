@@ -196,7 +196,7 @@ class Pin:
                 self.pin_number,global_pin_owners[self.pin_number],owner)
             raise OwnershipError(err)   
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shutdown a gpio pin, cleaning up.  This operation will automatically 
         release the lock.

@@ -97,12 +97,20 @@ class RobotDevice:
         except:
             self._queue_message(message.message,destination_device="warn")
  
-    def shutdown(self,owner):
+    def start(self):
         """
-        Safely shut down the piece of hardware.  
+        Dummy function, in case device needs to be started up.
         """
 
         pass
+
+    def stop(self):
+        """
+        Dummy device.  Some devices need to be stopped.
+        """
+    
+        pass
+
 
     def _queue_message(self,
                        message="",
@@ -145,11 +153,4 @@ class RobotDevice:
             self._messages = []
 
         return m
-
-    def start(self):
-        """
-        Dummy function, in case device needs to be started up.
-        """
-
-        pass
 

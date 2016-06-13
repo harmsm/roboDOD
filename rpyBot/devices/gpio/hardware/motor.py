@@ -129,12 +129,12 @@ class Motor:
 
         self._release(owner)
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shut down and clean up the pins.
         """     
  
         self.coast(owner) 
-        self.pin1.shutdown(owner)
-        self.pin2.shutdown(owner)
+        self.pin1.stop(owner)
+        self.pin2.stop(owner)
 

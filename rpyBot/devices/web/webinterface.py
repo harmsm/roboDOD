@@ -158,7 +158,7 @@ class WebInterface(RobotDevice):
         with self._lock:
             self._put_queue.append(message) 
 
-    def shutdown(self,owner=None):
+    def stop(self,owner=None):
         """
         Shutdown the tornado instance.
         """

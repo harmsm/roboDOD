@@ -1,13 +1,14 @@
 __description__ = \
 """
 The class RobotDevice (and its childern), are used to provide the hardware-
-specific functions required for each device.  Each class has five public methods:
+specific functions required for each device.  Each class has public methods:
 
 connect_manager: put device under exclusive control of a DeviceManager instance
 disconnect_manager: drop current controlling DeviceManager instance
 get: get any messages since last polled, clearing messages
 put: send a command to the device (via private methods in _control_dict)
-shutdown: safely shutdown the hardware
+start: start the device
+stop: safely shutdown the hardware
 
 All other methods should private and controlled via the put() method, which 
 takes a RobotMessage instance.  The "message" attribute should have a string

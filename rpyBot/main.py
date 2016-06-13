@@ -25,7 +25,7 @@ def start_bot(configuration,verbosity=0):
         print("Shutting down...")
         sys.stdout.flush()
         
-        dm.shutdown()
+        dm.stop()
         time.sleep(5)
 
     # start up signal checking thread...

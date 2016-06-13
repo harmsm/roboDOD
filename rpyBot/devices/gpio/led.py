@@ -44,8 +44,8 @@ class IndicatorLight(GPIORobotDevice):
                             delay_time=seconds_to_flash*1000)
        
  
-    def shutdown(self,owner):
+    def stop(self,owner):
 
-        self._led.shutdown(owner)
+        self._led.stop(owner)
 
 

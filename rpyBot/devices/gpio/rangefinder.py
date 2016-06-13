@@ -36,9 +36,9 @@ class RangeFinder(GPIORobotDevice):
         else:
             self._queue_message("{:.12f}".format(self._range_value))
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shutdown the gpio pins associated with this device.
         """
 
-        self._range_finder.shutdown(owner)
+        self._range_finder.stop(owner)

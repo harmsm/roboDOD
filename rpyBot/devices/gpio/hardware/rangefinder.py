@@ -78,11 +78,11 @@ class UltrasonicRange:
         # to give distance in m
         return (stop - start)*170
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shut down and clean up the pins.
         """     
  
-        self.trigger_pin.shutdown(owner)
-        self.echo_pin.shutdown(owner)
+        self.trigger_pin.stop(owner)
+        self.echo_pin.stop(owner)
         

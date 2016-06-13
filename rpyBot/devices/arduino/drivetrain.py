@@ -101,7 +101,3 @@ class Drivetrain(ArduinoRobotDevice):
 
         self._arduino_msg.send("set_speed",self._drive_speed)
 
-        
-    def shutdown(self,owner):
-
-        pass 

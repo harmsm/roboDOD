@@ -8,7 +8,7 @@ import multiprocessing, time, random, copy
 
 from rpyBot.messages import RobotMessage
 
-class DeviceManager: #(multiprocessing.Process):
+class DeviceManager:
     """
     Class for aynchronous communication and integration between all of the 
     devices attached to the robot.  It uses a multiprocessing.Queue instance
@@ -23,12 +23,10 @@ class DeviceManager: #(multiprocessing.Process):
             verbosity: whether or not to spew messages to standard out 
         """
     
-        #multiprocessing.Process.__init__(self)
-
         self.device_list = device_list
         self.poll_interval = poll_interval
         self.verbosity = verbosity
-        self.queue = [] #multiprocessing.Queue()
+        self.queue = [] 
 
         self.loaded_devices = []
         self.loaded_devices_dict = {}
@@ -36,9 +34,12 @@ class DeviceManager: #(multiprocessing.Process):
 
         self.manager_id = int(random.random()*1e9)
 
+        self._run_loop = False
+
     def start(self):
-        
-        self.run() #multiprocessing.Process.start(self)
+       
+        self._run_loop = True 
+        self.run()
 
     def load_device(self,d):
         """
@@ -103,14 +104,14 @@ class DeviceManager: #(multiprocessing.Process):
         for d in self.loaded_devices:
             d.disconnect_manager()
 
-    def shutdown(self):
+    def stop(self):
         """
         Shutdown all loaded devices (will propagate all the way down to cleanup
         of GPIO pins).  
         """
 
         for d in self.loaded_devices:
-            d.shutdown(self.manager_id)
+            d.stop(self.manager_id)
 
     def run(self):
 
@@ -119,10 +120,10 @@ class DeviceManager: #(multiprocessing.Process):
    
         self._queue_message("starting system") 
 
-        while True: 
+        while self._run_loop:
 
             # Go through the queue and pipe messages to appropriate devices
-            if not len(self.queue) > 0: #.empty():
+            if len(self.queue) > 0:
 
                 # Get the next message
                 message = self._get_message()
@@ -145,6 +146,10 @@ class DeviceManager: #(multiprocessing.Process):
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)
 
+    def stop(self):
+
+        self._run_loop = False
+    
     def _queue_message(self,
                        message="",
                        destination="robot",
@@ -179,13 +184,15 @@ class DeviceManager: #(multiprocessing.Process):
         self.queue.append(message) #.put(message)
 
     def _get_message(self):
- 
+        """
+        """ 
+
         if len(self.queue) == 0:
             return
 
         message = self.queue.pop(0) #.get()
 
-        # If this is a raw message string, convert it to an RobotMessage
+        # If this is a raw message string, convert it to a RobotMessage
         # instance 
         if type(message) == str:
 

@@ -38,9 +38,7 @@ var RobotMessage = function(options){
 
     /* Method: return the message in proper string format */
     this.asString = function(){
-
         return JSON.stringify(this);
-
     };
 
     /* Method: build a RobotMessage from a string */
@@ -72,6 +70,11 @@ var RobotMessage = function(options){
 
     };
 
+    this.prettyPrint = function(){
+        console.log(this.source + "." + this.source_device + " --> " + this.destination + "." + this.destination_device + " @ " + this.arrival_time);
+        console.log("... Message: " + this.message);
+    };
+
 }
 
 /* ------------------------------------------------------------------------- */
@@ -101,6 +104,7 @@ function recieveMessage(socket,msg){
     }   
  
     /* Log the message to the user interface terminal */
+    console.log("RECEIVED");
     terminalLogger(msg);
 
     /* parse messages based on source device */
@@ -125,8 +129,6 @@ function sendMessage(socket,message,allow_repeat){
                      a row.
     */
  
-    console.log(message);
-  
     /* By default, allow repeats */
     allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
 
@@ -136,6 +138,7 @@ function sendMessage(socket,message,allow_repeat){
     } else { 
 
         /* Log the message to the terminal */ 
+        console.log("SENT"); 
         terminalLogger(message);
 
         /* Convert the message to a string */
@@ -146,9 +149,6 @@ function sendMessage(socket,message,allow_repeat){
 
             /* Wait until the state of the socket is ready and send message */
             waitForSocketConnection(socket, function(){
-
-                console.log("HERE")
-                console.log(message_string)
                 socket.send(message_string);
 
                 /* update the last message sent */
@@ -218,7 +218,7 @@ function terminalLogger(msg){
     /* Log commands in the user interface terminal */
     
     /* write to broswer console for debugging purposes */ 
-    console.log(msg);
+    msg.prettyPrint();
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
