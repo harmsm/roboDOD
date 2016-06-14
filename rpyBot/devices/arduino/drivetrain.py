@@ -10,7 +10,8 @@ COMMANDS = (("who_are_you",""),
             ("communication_error","s"))
 
 BAUD_RATE = 9600                   
- 
+MAX_SPEED = 5
+MIN_SPEED = 0 
 
 class Drivetrain(ArduinoRobotDevice):
     """
@@ -36,6 +37,10 @@ class Drivetrain(ArduinoRobotDevice):
                               "left":self._left,
                               "right":self._right,
                               "setspeed":self._set_speed}
+
+        self._drive_speed = 0
+        self._min_speed = MIN_SPEED
+        self._max_speed = MAX_SPEED
 
         if self._hardware_is_found:
             self.state = "coast"
@@ -80,7 +85,7 @@ class Drivetrain(ArduinoRobotDevice):
         self._arduino_msg.send("set_speed",0,0)
         self._queue_message("Set motors to stopped")
 
-    def _set_speed(self,speed,owner):
+    def _set_speed(self,speed,owner=None):
         """
         Set the speed of the motors.
         """
@@ -99,5 +104,5 @@ class Drivetrain(ArduinoRobotDevice):
         else:
             self._drive_speed = speed
 
-        self._arduino_msg.send("set_speed",self._drive_speed)
+        self._control_dict[self.state]()
 

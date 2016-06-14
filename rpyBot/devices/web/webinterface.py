@@ -1,10 +1,12 @@
 __description__ = \
 """
-Class for seving a web site for a remote interface to the robot.
+Class for serving a web site for a remote interface to the robot.
 """
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
+
+HACK_PATH = "/home/harmsm/rpyBot/rpyBot/devices/web/client/" 
  
 import multiprocessing, os
 
@@ -25,9 +27,12 @@ class IndexHandler(tornado.web.RequestHandler):
 
         # Get the index file
         self._client_path = kwargs["client_path"]
+        self._client_list = kwargs["client_list"]
         self._index_file = os.path.join(self._client_path,"index.html")
+        self._block_file = os.path.join(self._client_path,"blocked.html")
 
         # Get rid of the extra kwarg and call the path inint function
+        kwargs.pop("client_list")
         kwargs.pop("client_path")
         super(IndexHandler, self).__init__(*args,**kwargs)
         
@@ -36,7 +41,10 @@ class IndexHandler(tornado.web.RequestHandler):
         Serve the main page over http.
         """
 
-        self.render(self._index_file)
+        if len(self._client_list) == 0:
+            self.render(self._index_file)
+        else:
+            self.render(self._block_file)
  
 class WebSocketHandler(tornado.websocket.WebSocketHandler):
     """
@@ -110,7 +118,7 @@ class WebInterface(RobotDevice):
             
         self._web_path = web_path
         if self._web_path == None:
-            self._web_path = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/client/"
+            self._web_path = HACK_PATH
  
         # Create a multiprocessing queue to hold messages from the client
         self._get_queue = multiprocessing.Queue()
@@ -125,7 +133,8 @@ class WebInterface(RobotDevice):
         # Initailize handler 
         app = tornado.web.Application(
             handlers=[
-                (r"/", IndexHandler,{'client_path':self._web_path}),
+                (r"/", IndexHandler,{'client_path':self._web_path,
+                                     'client_list':self._client_list}),
                 (r"/ws", WebSocketHandler,{"client_list":self._client_list}),
                 (r"/(.*)",tornado.web.StaticFileHandler,{'path':self._web_path}),
                 (r"/js/(.*)",tornado.web.StaticFileHandler,{'path':os.path.join(self._web_path,"js")}),

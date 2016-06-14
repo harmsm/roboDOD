@@ -59,9 +59,10 @@ class RobotMessage:
 
         return json.dumps(self.__dict__)
 
-    def pretty_print(self):
+    @property
+    def pretty(self):
         """
-        Print out a pretty version of the message.
+        A pretty version of the message.
         """
 
         s1 = "{}.{} --> {}.{} @ {}\n".format(self.source,
@@ -71,7 +72,14 @@ class RobotMessage:
                                              self.arrival_time)
         s2 = "... Message: {}\n".format(self.message)
 
-        print(s1 + s2)
+        return s1 + s2
+
+    def pretty_print(self):
+        """
+        Print the pretty versiono of the message to standard out.
+        """
+
+        print(self.pretty)
 
     def check_delay(self):
         """

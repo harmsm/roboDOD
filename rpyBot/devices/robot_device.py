@@ -86,15 +86,16 @@ class RobotDevice:
                     function_key = message.message[0]
                     kwargs = message.message[1]
                     self._control_dict[function_key](owner=message.message_id,**kwargs)
-                except:
+                except (KeyError,ValueError):
                     err = "Mangled command ({:s})".format(message.message)
                     self._queue_message(err,destination_device="warn")
 
             # No kwargs specified         
             else:
+
                 try:
                     self._control_dict[message.message](owner=message.message_id)
-                except:
+                except (KeyError,ValueError):
                     err = "Mangled command ({:s})".format(message.message)
                     self._queue_message(err,destination_device="warn")
 
@@ -102,7 +103,8 @@ class RobotDevice:
             self._queue_message(message.message)
 
         except:
-            self._queue_message(message.message,destination_device="warn")
+            err = "Unknown error occurred while passing message\n{}".format(message.pretty)
+            self._queue_message(err,destination_device="warn")
  
     def start(self):
         """

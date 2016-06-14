@@ -40,7 +40,7 @@ class DeviceManager:
         """
         Start the main loop running.
         """      
- 
+
         self._run_loop = True 
         self._run()
 
@@ -100,7 +100,7 @@ class DeviceManager:
 
             self.loaded_devices.pop(index)
             self.loaded_devices_dict.pop(device_name)
-            self.loaded_devices_processes.pop(index)
+            self.device_processes.pop(index)
 
         except KeyError:
             message = "device {} is not connected".format(device_name)
