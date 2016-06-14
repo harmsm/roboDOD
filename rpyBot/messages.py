@@ -60,6 +60,9 @@ class RobotMessage:
         return json.dumps(self.__dict__)
 
     def pretty_print(self):
+        """
+        Print out a pretty version of the message.
+        """
 
         s1 = "{}.{} --> {}.{} @ {}\n".format(self.source,
                                              self.source_device,

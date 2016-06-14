@@ -5,9 +5,10 @@ The parent class RobotDevice.
 __author__ = "Michael J. Harms"
 __date__ = "2014-06-18"
 
+from rpyBot import exceptions
 from rpyBot.messages import RobotMessage
 from random import random
-import time, threading, copy, multiprocessing
+import time, threading, copy
 
 class RobotDevice:
     """
@@ -31,7 +32,15 @@ class RobotDevice:
         self._lock = threading.RLock()
         self._messages = [] 
 
-    def connect_manager(self,manager):
+    @property
+    def connected(self):
+        
+        if self._manager == None:
+            return False
+        return True
+
+
+    def connect(self,manager):
         """
         Connect this device to requesting manager, unless we're already connected
         elsewhere.
@@ -39,16 +48,14 @@ class RobotDevice:
         on error, return string.  Otherwise, return None.
         """
 
-        if self._manager != None:
+        if self.connected:
             err = "{:s} already under control of {:s}".format(self.name,
                                                               self._manager)
-            return err
+            raise exceptions.BotConnectionError(err)
         else:       
             self._manager = manager
    
-        return None
- 
-    def disconnect_manager(self):
+    def disconnect(self):
         """
         Drop the connection to the manager.
         """      
@@ -104,7 +111,7 @@ class RobotDevice:
 
         pass
 
-    def stop(self):
+    def stop(self,owner=None):
         """
         Dummy device.  Some devices need to be stopped.
         """

@@ -41,3 +41,10 @@ class BotMessageError(BotError):
     """
 
     pass
+
+class BotConnectionError(BotError):
+    """
+    Exception when two pieces of hardware cannot connect for some reason.
+    """
+
+    pass

@@ -11,8 +11,8 @@ from rpyBot.messages import RobotMessage
 class DeviceManager:
     """
     Class for aynchronous communication and integration between all of the 
-    devices attached to the robot.  It uses a multiprocessing.Queue instance
-    to poll for messages. 
+    devices attached to the robot.  It runs on the main thread and then spawns
+    a thread for each device attached to the robot.
     """
  
     def __init__(self,device_list=[],poll_interval=0.1,verbosity=0):
@@ -37,31 +37,49 @@ class DeviceManager:
         self._run_loop = False
 
     def start(self):
-       
+        """
+        Start the main loop running.
+        """      
+ 
         self._run_loop = True 
-        self.run()
+        self._run()
+
+    def stop(self):
+        """
+        Stop the main loop from running.  Does not automatically unload devices
+        or stop them.
+        """
+        
+        self._run_loop = False
+
+    def shutdown(self):
+        """
+        Shutdown all loaded devices (will propagate all the way down to cleanup
+        of GPIO pins).  
+        """
+
+        for d in self.loaded_devices:
+            self.unload_device(d.name)
 
     def load_device(self,d):
         """
         Load a device into the DeviceManager.
         """
 
-        # load the device. d.connect_manager will return None unless there is
-        # a problem.        
-        status = d.connect_manager(self.__class__.__name__)
-        if status != None:
-            self._queue_message(status,destination_device="warn")
-        else:
-            self.loaded_devices.append(d)
+        try:
+            d.connect(self.manager_id)
             if d.name in list(self.loaded_devices_dict.keys()):
                 message = "device {:s} already connected!".format(d.name)
                 self._queue_message(message,destination_device="warn")
             else:
+                self.loaded_devices.append(d)
                 self.loaded_devices_dict[d.name] = len(self.loaded_devices) - 1
-
                 self.device_processes.append(multiprocessing.Process(target=self.loaded_devices[-1].start))
                 self.device_processes[-1].start()
-           
+
+        except exceptions.BotConnectionError as err:
+            self._queue_message(err,destination_device="warn")
+        
     def unload_device(self,device_name):
         """
         Unload a device from the control of the DeviceManager.
@@ -69,51 +87,27 @@ class DeviceManager:
 
         try:       
             index = self.loaded_devices_dict[device_name] 
+
+            # Stop the device, diconnect it from this device manager instance, 
+            # and then kill its thread.        
+            self.loaded_devices[index].stop(self.manager_id)
+            self.loaded_devices[index].disconnect()
+            self.device_processes[index].terminate()
+  
+            # Remove it from the lists holding the devices.  
+            for k in self.loaded_devices_dict.keys():
+                self.loaded_devices_dict[k] -= 1
+
+            self.loaded_devices.pop(index)
+            self.loaded_devices_dict.pop(device_name)
+            self.loaded_devices_processes.pop(index)
+
         except KeyError:
-            message = "device {:s} is not connected".format(device_name)
+            message = "device {} is not connected".format(device_name)
             self._queue_message(message,destination_device="warn")
 
-        self.loaded_devices[index].stop()
-        self.loaded_devices[index].disconnect_manager()
-        self.loaded_devices.pop(index)
-        self.loaded_devices_dict.pop(device_name)
-
-    def message_to_device(self,message):
-        """ 
-        Send data to appropriate device in self.loaded_devices.
-        """
-
-        # if the message is sent to the virtual "warn" device, forward this to
-        # the controller
-        if message.destination_device == "warn":
-            self.loaded_devices[self.loaded_devices_dict["controller"]].put(message)
-            return
-
-        try:
-            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)
-        except KeyError:
-            err = "device \"{}\" not loaded.".format(message.destination_device)
-            self._queue_message(err,destination_device="warn")
        
-    def close(self):
-        """
-        When the DeviceManager instance is killed, release all of the devices so
-        they can be picked up by another device manager.
-        """
-
-        for d in self.loaded_devices:
-            d.disconnect_manager()
-
-    def stop(self):
-        """
-        Shutdown all loaded devices (will propagate all the way down to cleanup
-        of GPIO pins).  
-        """
-
-        for d in self.loaded_devices:
-            d.stop(self.manager_id)
-
-    def run(self):
+    def _run(self):
 
         for d in self.device_list:
             self.load_device(d)
@@ -131,7 +125,7 @@ class DeviceManager:
                 # If the message is past its delay, send it to a device.  If not, 
                 # stick it back into the queue 
                 if message.check_delay() == True:
-                    self.message_to_device(message)
+                    self._message_to_device(message)
                 else:
                     self._queue_message(message)
             
@@ -146,9 +140,22 @@ class DeviceManager:
             # Wait poll_interval seconds before checking queues again
             time.sleep(self.poll_interval)
 
-    def stop(self):
+    def _message_to_device(self,message):
+        """ 
+        Send a RobotMessage instance to appropriate devices 
+        """
 
-        self._run_loop = False
+        # if the message is sent to the virtual "warn" device, forward this to
+        # the controller
+        if message.destination_device == "warn":
+            self.loaded_devices[self.loaded_devices_dict["controller"]].put(message)
+            return
+
+        try:
+            self.loaded_devices[self.loaded_devices_dict[message.destination_device]].put(message)
+        except KeyError:
+            err = "device \"{}\" not loaded.".format(message.destination_device)
+            self._queue_message(err,destination_device="warn")
     
     def _queue_message(self,
                        message="",
@@ -185,6 +192,7 @@ class DeviceManager:
 
     def _get_message(self):
         """
+        Return the first message in the queue.
         """ 
 
         if len(self.queue) == 0:

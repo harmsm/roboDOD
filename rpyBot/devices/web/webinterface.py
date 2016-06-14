@@ -187,9 +187,20 @@ class WebInterface(RobotDevice):
         Stop the tornado instance.
         """
 
-        self._mainLoop.stop()
-        self._scheduler.stop()
-        self._httpServer.stop()
+        try: 
+            self._mainLoop.stop()
+        except AttributeError:
+            pass
+
+        try:
+            self._scheduler.stop()
+        except AttributeError:
+            pass
+
+        try:
+            self._httpServer.stop()
+        except AttributeError:
+            pass
 
     def _send_queued_to_client(self):
         """
