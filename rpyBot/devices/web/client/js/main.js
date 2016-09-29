@@ -200,8 +200,10 @@ function main(){
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,new RobotMessage({destination_device:"forward_range",
-                                                 message:"get"}));
+            //sendMessage(socket,new RobotMessage({destination_device:"forward_range",
+            //                                     message:"get"}));
+            sendMessage(socket,new RobotMessage({destination_device:"drivetrain",
+                                                 message:"getspeed"}));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     /* Or complain...  */
@@ -336,7 +338,7 @@ function parseDrivetrainMessage(msg){
         var current_speed = msg.message[1].speed;
 
         // Update user interface
-        $("#actualspeed").html(Math.round(current_speed));
+        $("#actualspeed").html(Math.round(current_speed*10.0)/10.0);
         $("#speedometer").toggleClass("speed-in-sync",true);
 
     /* Otherwise, update steering interface */ 

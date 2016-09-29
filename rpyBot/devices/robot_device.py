@@ -104,6 +104,7 @@ class RobotDevice:
 
         except:
             err = "Unknown error occurred while passing message\n{}".format(message.pretty)
+            print(err)
             self._queue_message(err,destination_device="warn")
  
     def start(self):

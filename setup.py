@@ -21,7 +21,7 @@ setup(name='rpyBot',
       url='https://github.com/harmsm/rpyBot',
       download_url='https://XX',
       zip_safe=False,
-      install_requires=["PyCmdMessenger>=0.2.2","RPi.GPIO","tornado"],
+      install_requires=["PyCmdMessenger>=0.2.2","tornado"], #RPi.GPIO","tornado"],
       classifiers=[],
       entry_points = {'console_scripts': ['rpyBot = rpyBot.main:main']},
       package_data={'': client_files})

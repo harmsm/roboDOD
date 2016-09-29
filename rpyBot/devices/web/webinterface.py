@@ -6,7 +6,7 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
 
-HACK_PATH = "/home/harmsm/rpyBot/rpyBot/devices/web/client/" 
+HACK_PATH = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/client/" 
  
 import multiprocessing, os
 
@@ -114,7 +114,7 @@ class WebInterface(RobotDevice):
         # so the device has a status light. 
         self._led = None
         if led_gpio != None:
-            self._led = gpio.LEDIndicatorLight(led_gpio)
+            self._led = gpio.IndicatorLight(led_gpio)
             
         self._web_path = web_path
         if self._web_path == None:
