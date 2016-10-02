@@ -11,6 +11,6 @@ __all__ = ["led",
 from .gpio_device import GPIORobotDevice
 
 from .drivetrain import SingleMotor, TwoMotorDriveSteer, TwoMotorCatSteer
-from .led import IndicatorLight
+from .led import IndicatorLight, LightTower
 from .rangefinder import RangeFinder
 

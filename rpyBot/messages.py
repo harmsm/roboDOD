@@ -35,6 +35,8 @@ class RobotMessage:
 
         self.minimum_time = self.arrival_time + self.delay_time
 
+        self.pretty_print()
+
     def from_string(self,message_string):
         """
         Parse a message string and use it to populate the message.
@@ -65,11 +67,12 @@ class RobotMessage:
         A pretty version of the message.
         """
 
-        s1 = "{}.{} --> {}.{} @ {}\n".format(self.source,
+        s1 = "{}.{} --> {}.{} @ {} [{}]\n".format(self.source,
                                              self.source_device,
                                              self.destination,
                                              self.destination_device,
-                                             self.arrival_time)
+                                             self.arrival_time,
+                                             self.minimum_time)
         s2 = "... Message: {}\n".format(self.message)
 
         return s1 + s2

@@ -6,7 +6,7 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-06-19"
 __usage__ = ""
 
-HACK_PATH = "/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/client/" 
+HACK_PATH = "/home/harmsm/rpyBot/rpyBot/devices/web/client" #"/home/harmsm/Desktop/rpyBot/rpyBot/devices/web/client/" 
  
 import multiprocessing, os
 

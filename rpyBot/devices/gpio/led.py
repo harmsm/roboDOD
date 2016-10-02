@@ -83,14 +83,18 @@ class LightTower(GPIORobotDevice):
             self._led_list.append(hardware.LED(i,frequency=frequency,
                                                duty_cycle=duty_cycle))
 
-        control_dict = {"on":self._on,
-                        "off":self._off,
-                        "flip":self._flip,
-                        "flash":self._flash,
-                        "roll":self._roll,
-                        "duty":self._duty,
-                        "freq":self._freq}
-    
+        self._control_dict = {"on":self._on,
+                              "off":self._off,
+                              "flip":self._flip,
+                              "flash":self._flash,
+                              "roll":self._roll,
+                              "duty":self._duty,
+                              "freq":self._freq}
+ 
+        # HACK 
+        self._queue_message(["roll",{"roll_time":1.0}],destination="robot",destination_device=self.name)
+
+ 
     def _on(self,led_number=None,owner=None):
         """
         If the led_number is specified, turn on a specific led.  Otherwise,
@@ -161,13 +165,16 @@ class LightTower(GPIORobotDevice):
         if led_number is not None:
             self._led_list[led_number].on(owner)
             self._queue_message(["off",{"led_number":led_number}],
+                                destination="robot",
                                 destination_device=self.name,
                                 delay_time=seconds_to_flash*1000)
         else:
             for l in self._led_list:
                 l.on(owner)
 
-            self._queue_message("off",destination_device=self.name,
+            self._queue_message("off",
+                                destination="robot",
+                                destination_device=self.name,
                                 delay_time=seconds_to_flash*1000)
 
     def _roll(self,roll_time=1.0,starting_led=0,owner=None):
@@ -179,9 +186,6 @@ class LightTower(GPIORobotDevice):
             starting_led: led on which to start the roll.
             owner: owner of leds while being set.
         """
-       
-        # Flip all leds off. 
-        self._off(owner=owner)
 
         # Check to see if _stop_roll has been called, which will set 
         # self._rolling_status to "Stop running" and thus break the 
@@ -191,6 +195,7 @@ class LightTower(GPIORobotDevice):
             if self._rolling_status == "Not running":
                 self._rolling_status = "Running"
             elif self._rolling_status == "Stop running":
+                self._off(owner)
                 self._rolling_status = "Not running"
                 return 
             else:
@@ -199,16 +204,18 @@ class LightTower(GPIORobotDevice):
             self._rolling_status = "Running"
 
         # Now, turn on the starting led
+        self._led_list[starting_led-1].off(owner)
         self._led_list[starting_led].on(owner)
-      
+     
         # Determine the next led we will turn on. 
-        starting_led += starting_led 
+        starting_led += 1
         if starting_led >= len(self._led_list):
             starting_led -= len(self._led_list)
 
         # Now queue a message to turn on the next led after roll_time has elapsed.
         self._queue_message(["roll",{"starting_led":starting_led,
                                      "roll_time":roll_time}],
+                            #destination="robot",
                             destination_device=self.name,
                             delay_time=roll_time*1000)
 
