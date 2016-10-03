@@ -1,14 +1,11 @@
 
 import time
 
-import gpio
-from . import RobotDevice
-from messages import RobotMessage
+from . import hardware, GPIORobotDevice 
 
-
-class SingleMotor(RobotDevice):
+class SingleMotor(GPIORobotDevice):
     """
-    Single gpio.Motor under control of two GPIO pins.
+    Single hardware.Motor under control of two GPIO pins.
     """
  
     def __init__(self,pin1,pin2,duty_cycle=100,frequency=50,name=None):
@@ -25,28 +22,28 @@ class SingleMotor(RobotDevice):
         set_freq: set PWM frequency, kwargs = {"frequency":float}
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._motor = gpio.Motor(pin1,pin2,
+        self._motor = hardware.Motor(pin1,pin2,
                                  duty_cycle=duty_cycle,
                                  frequency=frequency)
 
         self._control_dict = {"forward":self._motor.forward,
                               "reverse":self._motor.reverse,
-                              "break":self._motor.brake,
+                              "brake":self._motor.brake,
                               "coast":self._motor.coast,
                               "set_dutycycle":self._motor.set_duty_cycle,
                               "set_freq":self._motor.set_frequency}
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shut down the motor.
         """
 
-        self._motor.shutdown(owner)
+        self._motor.stop(owner)
 
 
-class TwoMotorDriveSteer(RobotDevice):
+class TwoMotorDriveSteer(GPIORobotDevice):
     """
     Two GPIOMotors that work in synchrony.  The drive motor does forward and 
     reverse, the steer motor moves the wheels left and right.
@@ -71,10 +68,10 @@ class TwoMotorDriveSteer(RobotDevice):
         center: steer motor center, no kwargs
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
 
-        self._drive_motor = gpio.Motor(drive_pin1,drive_pin2)
-        self._steer_motor = gpio.Motor(steer_pin1,steer_pin2) 
+        self._drive_motor = hardware.Motor(drive_pin1,drive_pin2)
+        self._steer_motor = hardware.Motor(steer_pin1,steer_pin2) 
 
         self._control_dict = {"forward":self._drive_motor.forward,
                               "reverse":self._drive_motor.reverse,
@@ -118,14 +115,14 @@ class TwoMotorDriveSteer(RobotDevice):
         self._steer_motor.coast(owner)
         self._current_steer_motor_state = 0
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         
-        self._steer_motor.shutdown(owner)
-        self._drive_motor.shutdown(owner)
+        self._steer_motor.stop(owner)
+        self._drive_motor.stop(owner)
 
-class TwoMotorCatSteer(RobotDevice):
+class TwoMotorCatSteer(GPIORobotDevice):
     """
-    Two gpio.Motor that work in synchrony as a cat drive.  The left and right
+    Two hardware.Motor that work in synchrony as a cat drive.  The left and right
     motors go forward and reverse independently.  Steering is achieved by 
     running one forward, the other in reverse.  
     """ 
@@ -153,7 +150,7 @@ class TwoMotorCatSteer(RobotDevice):
         setspeed: set the motor speed, kwargs = {"speed":float}
         """
 
-        RobotDevice.__init__(self,name)
+        GPIORobotDevice.__init__(self,name)
       
         self._pwm_frequency = pwm_frequency 
         self._max_pwm_duty_cycle = max_pwm_duty_cycle 
@@ -167,8 +164,8 @@ class TwoMotorCatSteer(RobotDevice):
         self._burst_start_duty = burst_start_duty
         self._burst_start_delay = burst_start_delay
 
-        self._left_motor = gpio.Motor(left_pin1,left_pin2,pwm_frequency,max_pwm_duty_cycle)
-        self._right_motor = gpio.Motor(right_pin1,right_pin2,pwm_frequency,max_pwm_duty_cycle) 
+        self._left_motor = hardware.Motor(left_pin1,left_pin2,pwm_frequency,max_pwm_duty_cycle)
+        self._right_motor = hardware.Motor(right_pin1,right_pin2,pwm_frequency,max_pwm_duty_cycle) 
     
         self._control_dict = {"forward":self._forward,
                               "reverse":self._reverse,
@@ -259,26 +256,23 @@ class TwoMotorCatSteer(RobotDevice):
         if speed > self._max_speed or speed < 0:
             err = "speed {:.3f} is invalid".format(speed)
 
-            self._append_message(RobotMessage(destination_device="warn",
-                                              source_device=self.name,
-                                              message=err))
+            self._queue_message(err,destination_device="warn")
 
             # Be conservative.  Since we recieved a mangled speed command, set
             # speed to 0.
-            self._append_message(RobotMessage(destination="robot",
-                                              destination_device=self.name,
-                                              source="robot",
-                                              source_device=self.name,
-                                              message=["setspeed",{"speed":0}]))
+            self._queue_message(["setspeed",{"speed":0}],
+                                 destination="robot",
+                                 destination_device=self.name)
+
         else:
             self._drive_speed = speed
 
         self._left_motor.set_duty_cycle(self.duty,owner)
         self._right_motor.set_duty_cycle(self.duty,owner)
                      
-    def shutdown(self,owner):
+    def stop(self,owner):
 
-        self._left_motor.shutdown(owner)
-        self._right_motor.shutdown(owner)
+        self._left_motor.stop(owner)
+        self._right_motor.stop(owner)
         
 

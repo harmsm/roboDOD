@@ -1,5 +1,11 @@
 
-import RPi.GPIO as GPIO
+# import the gpio hardware interface.  This will die on non-raspberry pi
+# machines, so load a fake interface in.
+try:
+    import RPi.GPIO as GPIO
+except (RuntimeError,ImportError):
+    from . import fake_gpio as GPIO
+    
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(10)
 
@@ -190,7 +196,7 @@ class Pin:
                 self.pin_number,global_pin_owners[self.pin_number],owner)
             raise OwnershipError(err)   
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shutdown a gpio pin, cleaning up.  This operation will automatically 
         release the lock.

@@ -69,10 +69,10 @@ class LED:
 
         self.pin.release(owner)
 
-    def shutdown(self,owner):
+    def stop(self,owner):
         """
         Shut down the GPIO pin for this LED.
         """
         
-        self.pin.shutdown(owner)       
+        self.pin.stop(owner)       
  

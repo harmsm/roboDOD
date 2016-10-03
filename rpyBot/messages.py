@@ -7,6 +7,7 @@ __author__ = "Michael J. Harms"
 __date__ = "2014-12-29"
 
 import time, json, random
+from . import exceptions
 
 class RobotMessage:
     """
@@ -34,30 +35,54 @@ class RobotMessage:
 
         self.minimum_time = self.arrival_time + self.delay_time
 
+        self.pretty_print()
+
     def from_string(self,message_string):
         """
         Parse a message string and use it to populate the message.
         """
-
-        #try:
-        message_dict = json.loads(message_string)
-        for k in message_dict.keys():
-            self.__dict__[k] = message_dict[k]
+        
+        try:
+            message_dict = json.loads(message_string)
+            for k in message_dict.keys():
+                self.__dict__[k] = message_dict[k]
+        except (ValueError,KeyError):
+            err = "Mangled message string ({})".format(message_string)
+            raise exceptions.BotMessageError(err)
 
         # Wipe out arrival time from message itself
         self.arrival_time = int(time.time()*1000)
         self.minimum_time = self.arrival_time + self.delay_time
         
-        #except:
-        #    err = "mangled message ({:s}) recieved!".format(message_string)
-        #    return RobotMessage(destination_device="warn", message=err)
-
     def as_string(self):
         """
         Convert a message instance to a string.
         """
 
         return json.dumps(self.__dict__)
+
+    @property
+    def pretty(self):
+        """
+        A pretty version of the message.
+        """
+
+        s1 = "{}.{} --> {}.{} @ {} [{}]\n".format(self.source,
+                                             self.source_device,
+                                             self.destination,
+                                             self.destination_device,
+                                             self.arrival_time,
+                                             self.minimum_time)
+        s2 = "... Message: {}\n".format(self.message)
+
+        return s1 + s2
+
+    def pretty_print(self):
+        """
+        Print the pretty versiono of the message to standard out.
+        """
+
+        print(self.pretty)
 
     def check_delay(self):
         """

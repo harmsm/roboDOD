@@ -18,7 +18,7 @@ var RobotMessage = function(options){
     options.destination = typeof options.destination !== 'undefined' ? options.destination : "robot";    
     options.destination_device = typeof options.destination_device !== 'undefined' ? options.destination_device : "";     
     options.source = typeof options.source !== 'undefined' ? options.source : "controller";    
-    options.source_device = typeof options.source_device !== 'undefined' ? options.source_device : "";
+    options.source_device = typeof options.source_device !== 'undefined' ? options.source_device : "controller";
 
     options.delay = typeof options.delay !== 'undefined' ? options.delay : 0.0;   
     options.message = typeof options.message !== 'undefined' ? options.message : "";     
@@ -38,9 +38,7 @@ var RobotMessage = function(options){
 
     /* Method: return the message in proper string format */
     this.asString = function(){
-
         return JSON.stringify(this);
-
     };
 
     /* Method: build a RobotMessage from a string */
@@ -72,6 +70,11 @@ var RobotMessage = function(options){
 
     };
 
+    this.prettyPrint = function(){
+        console.log(this.source + "." + this.source_device + " --> " + this.destination + "." + this.destination_device + " @ " + this.arrival_time);
+        console.log("... Message: " + this.message);
+    };
+
 }
 
 /* ------------------------------------------------------------------------- */
@@ -86,7 +89,7 @@ function recieveMessage(socket,msg){
      */ 
 
     /* If this is not a RobotMessage instance already, turn it into one */
-    if (typeof msg.source == 'undefined'){
+    if (typeof msg.source_device == 'undefined'){
 
         var message_string = msg;
   
@@ -95,12 +98,13 @@ function recieveMessage(socket,msg){
         msg.fromString(message_string);
   
         /* update the last message recieved */
-        if (msg.source != "controller"){
+        if (msg.source_device != "controller"){
             $("#last-recieved-message").html(message_string);
         }
     }   
  
     /* Log the message to the user interface terminal */
+    console.log("RECEIVED");
     terminalLogger(msg);
 
     /* parse messages based on source device */
@@ -124,16 +128,17 @@ function sendMessage(socket,message,allow_repeat){
        allow_repeat: bool that says whether we can pass same message twice in 
                      a row.
     */
-   
+ 
     /* By default, allow repeats */
     allow_repeat = typeof allow_repeat !== 'undefined' ? allow_repeat : true;
 
     /* If this is a message to self, send it back to self */
-    if (message.destination == "controller"){
+    if (message.destination_device == "controller"){
         recieveMessage(socket,message);
     } else { 
 
         /* Log the message to the terminal */ 
+        console.log("SENT"); 
         terminalLogger(message);
 
         /* Convert the message to a string */
@@ -144,7 +149,6 @@ function sendMessage(socket,message,allow_repeat){
 
             /* Wait until the state of the socket is ready and send message */
             waitForSocketConnection(socket, function(){
-
                 socket.send(message_string);
 
                 /* update the last message sent */
@@ -189,15 +193,17 @@ function main(){
         /* Indicate that connection has been made on contoller user interface */
         $("#connection_status").html("Connected");
         $("#connection_status").toggleClass("text-success",true);
-        sendMessage(socket,new RobotMessage({destination:"controller",
+        sendMessage(socket,new RobotMessage({destination_device:"controller",
                                              message:"connected to " + host}));
 
         // Start measuring ranges
         var myInterval = 0;
         if(myInterval > 0) clearInterval(myInterval);  // stop
         myInterval = setInterval( function checkRange(){
-            sendMessage(socket,new RobotMessage({destination_device:"forward_range",
-                                                 message:"get"}));
+            //sendMessage(socket,new RobotMessage({destination_device:"forward_range",
+            //                                     message:"get"}));
+            sendMessage(socket,new RobotMessage({destination_device:"drivetrain",
+                                                 message:"getspeed"}));
         }, RANGE_CHECK_FREQUENCY );  // run
 
     /* Or complain...  */
@@ -214,7 +220,7 @@ function terminalLogger(msg){
     /* Log commands in the user interface terminal */
     
     /* write to broswer console for debugging purposes */ 
-    //console.log(msg);
+    msg.prettyPrint();
 
     // If we're not logging *everything* don't log drivetrain and distance stuff.
     if (LOG_LEVEL < 2){
@@ -228,7 +234,7 @@ function terminalLogger(msg){
     var this_class = '';
 
     /* Who sent the message? */
-    if (msg.source == "controller"){
+    if (msg.source_device == "controller"){
         identifier = "You: ";
         device = msg.destination_device;
         this_class = "to-robot-msg";
@@ -264,7 +270,7 @@ function terminalLogger(msg){
 function closeClient(){
     $("#connection_status").html("Disconnected");
     $("#connection_status").toggleClass("text-success",false);
-    sendMessage(socket,new RobotMessage({destination:"controller",
+    sendMessage(socket,new RobotMessage({destination_device:"controller",
                                          message:"connection closed."}));
 }
 
@@ -332,7 +338,7 @@ function parseDrivetrainMessage(msg){
         var current_speed = msg.message[1].speed;
 
         // Update user interface
-        $("#actualspeed").html(Math.round(current_speed));
+        $("#actualspeed").html(Math.round(current_speed*10.0)/10.0);
         $("#speedometer").toggleClass("speed-in-sync",true);
 
     /* Otherwise, update steering interface */ 
